@@ -105,3 +105,21 @@ def test_read_ram(packer):
         floats, bools = x
         assert floats == pytest.approx(exp[i][0])
         assert bools == exp[i][1]
+
+
+def test_read_file(packer):
+    packer, tmp_path = packer
+    exp = []
+    for _ in range(12):
+        floats, bools = [1, 2], [True]
+        packer.append(floats, bools)
+        exp.append([floats, bools])
+        floats, bools = [3, 4], [False]
+        packer.append(floats, bools)
+        exp.append([floats, bools])
+
+    resp = list(packer.read())
+    for i, x in enumerate(resp):
+        floats, bools = x
+        assert floats == pytest.approx(exp[i][0])
+        assert bools == exp[i][1]
