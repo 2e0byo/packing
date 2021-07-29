@@ -46,7 +46,12 @@ class PackedReadings:
                 for i in range(0, len(bools), 8)
             ]
 
-        packed = struct.pack("f" * self.floats + "B" * self.bool_bytes, *floats, *bools)
+        args = []
+        if floats:
+            args += floats
+        if bools:
+            args += bools
+        packed = struct.pack("f" * self.floats + "B" * self.bool_bytes, *args)
         return packed
 
     def unpack(self, packed):
