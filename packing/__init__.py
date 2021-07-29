@@ -1,4 +1,5 @@
 import struct
+import math
 
 
 def pack_bools(bools):
@@ -17,12 +18,32 @@ def unpack_bools(bool_byte):
     return bools
 
 
-def pack_status(temps, bools):
-    bools = pack_bools(bools)
-    packed = struct.pack("f" * len(temps) + "B", *temps, bools)
-    return packed
+class PackedReadings:
+    def __init__(self, floats, bools=1):
+        self.bools = bools
+        self.bool_bytes = math.ceil(bools / 8)
+        self.floats = floats
 
+    def pack(self, floats=None, bools=None):
+        if self.bool_bytes:
+            bools = [
+                pack_bools(bools[i : min(i + 8, len(bools))])
+                for i in range(0, len(bools), 8)
+            ]
 
-def unpack_status(packed, no_temps):
-    unpacked = struct.unpack("f" * no_temps + "B", packed)
-    return unpacked[:-1], unpack_bools(unpacked[0])
+        print(self.floats, self.bool_bytes, floats, bools)
+        packed = struct.pack("f" * self.floats + "B" * self.bool_bytes, *floats, *bools)
+        return packed
+
+    def unpack(self, packed):
+        unpacked = struct.unpack("f" * self.floats + "B" * self.bool_bytes, packed)
+        if self.bools:
+            floats = unpacked[: -self.bool_bytes]
+            bools = []
+            for byte in unpacked[-self.bool_bytes :]:
+                bools += unpack_bools(byte)
+            bools = bools[: self.bools]
+        else:
+            floats = unpacked
+            bools = []
+        return floats, bools
