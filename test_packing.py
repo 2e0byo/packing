@@ -1,4 +1,5 @@
 import packing
+from devtools import debug
 import pytest
 
 
@@ -39,7 +40,7 @@ def test_pack_unpack(floats, bools):
         assert rfloats == floats
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def packer(tmp_path):
     p = packing.PackedReadings(
         name="packer",
@@ -74,3 +75,33 @@ def test_append_logs(packer):
     for _ in range(5):
         packer.append([1, 2], [True])
     assert (tmp_path / "packer_1.bin").exists()
+
+
+def test_append_ram(packer):
+    packer, tmp_path = packer
+    assert packer.buf == bytearray(packer.line_size * packer.buffer_size)
+    packer.append([1, 2], [True])
+    packed = packer.pack([1, 2], [True])
+    assert bytes(packer.buf[: len(packed)]) == packed
+    packer.append([3, 4], [False])
+    unp = packer.unpack(packer.buf[len(packed) : len(packed) * 2])
+    assert unp[0] == pytest.approx([3, 4])
+    assert unp[1] == [False]
+
+
+def test_read_ram(packer):
+    packer, tmp_path = packer
+    exp = []
+    for _ in range(2):
+        floats, bools = [1, 2], [True]
+        packer.append(floats, bools)
+        exp.append([floats, bools])
+        floats, bools = [3, 4], [False]
+        packer.append(floats, bools)
+        exp.append([floats, bools])
+
+    resp = list(packer.read())
+    for i, x in enumerate(resp):
+        floats, bools = x
+        assert floats == pytest.approx(exp[i][0])
+        assert bools == exp[i][1]

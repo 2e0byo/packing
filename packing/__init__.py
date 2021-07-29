@@ -30,10 +30,11 @@ class PackedReadings:
         self.bools = bools
         self.bool_bytes = math.ceil(bools / 8)
         self.floats = floats
-        self.line_size = self.bool_bytes + len(struct.pack("f", 99.78))
+        self.line_size = self.bool_bytes + len(struct.pack("f", 99.78)) * floats
         self.buffer_size = buffer_size
         self.log_size = log_size
         self.buf = bytearray(self.line_size * buffer_size)
+        print(self.buf)
         self.outdir = outdir
         self.keep_logs = keep_logs
         self.name = name
@@ -98,5 +99,15 @@ class PackedReadings:
 
         if self.pos % self.buffer_size == 0 and self.pos:
             self.write_log()
-        self.buf[self.pos : self.pos + self.line_size] = self.pack(floats, bools)
+        pos = self.pos * self.line_size
+        self.buf[pos : pos + self.line_size] = self.pack(floats, bools)
         self.pos += 1
+
+    def read(self):
+        print(self.line_size)
+        if self.pos > self.buffer_size:
+            with open("{}/{}_0.bin".format(self.outdir, self.name), "rb") as f:
+                yield self.unpack(f.read(self.line_size))
+        for i in range(self.pos):
+            pos = i * self.line_size
+            yield self.unpack(self.buf[pos : pos + self.line_size])
