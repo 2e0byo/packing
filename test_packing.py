@@ -26,7 +26,9 @@ packtests = [
 
 @pytest.mark.parametrize("floats, bools", packtests)
 def test_pack_unpack(floats, bools):
-    packer = packing.PackedReadings("p", "/tmp", 100, len(floats), len(bools))
+    packer = packing.PackedReadings(
+        name="packer", outdir="/tmp", log_size=100, floats=len(floats), bools=len(bools)
+    )
     resp = packer.pack(floats, bools)
     assert resp
     rfloats, rbools = packer.unpack(resp)
