@@ -11,7 +11,6 @@ def pack_bools(bools):
     bool_byte = 0
     for i, x in enumerate(bools):
         bool_byte += int(x) << i
-    print(bin(bool_byte))
     return bool_byte
 
 
@@ -34,7 +33,6 @@ class PackedReadings:
         self.buffer_size = buffer_size
         self.log_size = log_size
         self.buf = bytearray(self.line_size * buffer_size)
-        print(self.buf)
         self.outdir = outdir
         self.keep_logs = keep_logs
         self.name = name
@@ -48,7 +46,6 @@ class PackedReadings:
                 for i in range(0, len(bools), 8)
             ]
 
-        print(self.floats, self.bool_bytes, floats, bools)
         packed = struct.pack("f" * self.floats + "B" * self.bool_bytes, *floats, *bools)
         return packed
 
@@ -72,12 +69,9 @@ class PackedReadings:
                 for fn in os.listdir(self.outdir)
                 if fn.startswith(self.name)
             ]
-            print("logs", logs, os.listdir(self.outdir))
             for i in (x for x in logs if x > self.keep_logs - 1):
-                print("removing", i)
                 os.remove("{}/{}_{}.bin".format(self.outdir, self.name, i))
             for i in (x for x in logs if x <= self.keep_logs - 1):
-                print("renaming", i, i + 1)
                 os.rename(
                     "{}/{}_{}.bin".format(self.outdir, self.name, i),
                     "{}/{}_{}.bin".format(self.outdir, self.name, i + 1),
@@ -89,7 +83,6 @@ class PackedReadings:
         self.pos = 0
 
     def write_log(self):
-        print("{}/{}_0.bin".format(self.outdir, self.name))
         with open("{}/{}_0.bin".format(self.outdir, self.name), "ab") as f:
             f.write(self.buf)
 
@@ -104,7 +97,6 @@ class PackedReadings:
         self.pos += 1
 
     def read(self):
-        print(self.line_size)
         if self.pos > self.buffer_size:
             with open("{}/{}_0.bin".format(self.outdir, self.name), "rb") as f:
                 yield self.unpack(f.read(self.line_size))
