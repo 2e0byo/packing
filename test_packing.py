@@ -65,6 +65,19 @@ def test_rotate_logs(packer):
     assert (tmp_path / "packer_1.bin").exists()
 
 
+def test_rotate_logs_no_keep(packer):
+    packer, tmp_path = packer
+    packer.keep_logs = 0
+    for _ in range(5):
+        packer.append([1, 2], [True])
+    packer.write_log()
+    assert (tmp_path / "packer_0.bin").exists(), "Failed to make file"
+    assert not (tmp_path / "packer_1.bin").exists()
+    packer.rotate_logs()
+    assert not (tmp_path / "packer_0.bin").exists()
+    assert not (tmp_path / "packer_1.bin").exists()
+
+
 def test_append_logs(packer):
     packer, tmp_path = packer
     for _ in range(5):
