@@ -17,12 +17,6 @@ def test_pack_bools_mix():
     assert resp == 0b01010101
 
 
-@pytest.fixture
-def packer():
-    p = packing.PackedReadings(2, 1)
-    yield p
-
-
 packtests = [
     [(12.7, 13.6), [True, False, True, False]],
     [(), [True, False] * 10],
@@ -32,8 +26,7 @@ packtests = [
 
 @pytest.mark.parametrize("floats, bools", packtests)
 def test_pack_unpack(floats, bools):
-    print(floats, bools)
-    packer = packing.PackedReadings(len(floats), len(bools))
+    packer = packing.PackedReadings("p", "/tmp", 100, len(floats), len(bools))
     resp = packer.pack(floats, bools)
     assert resp
     rfloats, rbools = packer.unpack(resp)
@@ -44,5 +37,38 @@ def test_pack_unpack(floats, bools):
         assert rfloats == floats
 
 
-def test_unpack(packer):
-    pass
+@pytest.fixture
+def packer(tmp_path):
+    p = packing.PackedReadings(
+        name="packer",
+        outdir=str(tmp_path),
+        log_size=10,
+        floats=2,
+        bools=1,
+        buffer_size=5,
+    )
+    yield p, tmp_path
+
+
+def test_rotate_logs(packer):
+    packer, tmp_path = packer
+    for _ in range(5):
+        packer.append([1, 2], [True])
+    packer.write_log()
+    assert (tmp_path / "packer_0.bin").exists(), "Failed to make file"
+    assert not (tmp_path / "packer_1.bin").exists()
+    packer.rotate_logs()
+    assert not (tmp_path / "packer_0.bin").exists(), "Still got old file"
+    assert (tmp_path / "packer_1.bin").exists()
+
+
+def test_append_logs(packer):
+    packer, tmp_path = packer
+    for _ in range(5):
+        packer.append([1, 2], [True])
+    assert not (tmp_path / "packer_0.bin").exists(), "Already there"
+    packer.append([1, 2], [True])
+    assert (tmp_path / "packer_0.bin").exists()
+    for _ in range(5):
+        packer.append([1, 2], [True])
+    assert (tmp_path / "packer_1.bin").exists()

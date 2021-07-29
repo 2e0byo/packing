@@ -1,6 +1,11 @@
 import struct
 import math
 
+try:
+    import uos as os
+except ImportError:
+    import os
+
 
 def pack_bools(bools):
     bool_byte = 0
@@ -19,10 +24,21 @@ def unpack_bools(bool_byte):
 
 
 class PackedReadings:
-    def __init__(self, floats, bools=1):
+    def __init__(
+        self, name, outdir, log_size, floats, bools=1, buffer_size=100, keep_logs=1
+    ):
         self.bools = bools
         self.bool_bytes = math.ceil(bools / 8)
         self.floats = floats
+        self.line_size = self.bool_bytes + len(struct.pack("f", 99.78))
+        self.buffer_size = buffer_size
+        self.log_size = log_size
+        self.buf = bytearray(self.line_size * buffer_size)
+        self.outdir = outdir
+        self.keep_logs = keep_logs
+        self.name = name
+        self.pos = 0
+        self.rotate_logs()
 
     def pack(self, floats=None, bools=None):
         if self.bool_bytes:
@@ -47,3 +63,40 @@ class PackedReadings:
             floats = unpacked
             bools = []
         return floats, bools
+
+    def rotate_logs(self):
+        if self.keep_logs:
+            logs = [
+                int(fn.split("_")[-1].replace(".bin", ""))
+                for fn in os.listdir(self.outdir)
+                if fn.startswith(self.name)
+            ]
+            print("logs", logs, os.listdir(self.outdir))
+            for i in (x for x in logs if x > self.keep_logs - 1):
+                print("removing", i)
+                os.remove("{}/{}_{}.bin".format(self.outdir, self.name, i))
+            for i in (x for x in logs if x <= self.keep_logs - 1):
+                print("renaming", i, i + 1)
+                os.rename(
+                    "{}/{}_{}.bin".format(self.outdir, self.name, i),
+                    "{}/{}_{}.bin".format(self.outdir, self.name, i + 1),
+                )
+
+        else:
+            os.remove("{}/{}_0.bin".format(self.outdir, self.name))
+
+        self.pos = 0
+
+    def write_log(self):
+        print("{}/{}_0.bin".format(self.outdir, self.name))
+        with open("{}/{}_0.bin".format(self.outdir, self.name), "ab") as f:
+            f.write(self.buf)
+
+    def append(self, floats=None, bools=None):
+        if self.pos == self.log_size:
+            self.rotate_logs()
+
+        if self.pos % self.buffer_size == 0 and self.pos:
+            self.write_log()
+        self.buf[self.pos : self.pos + self.line_size] = self.pack(floats, bools)
+        self.pos += 1
