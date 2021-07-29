@@ -63,6 +63,8 @@ def test_rotate_logs(packer):
     packer.rotate_logs()
     assert not (tmp_path / "packer_0.bin").exists(), "Still got old file"
     assert (tmp_path / "packer_1.bin").exists()
+    packer.rotate_logs()
+    assert not (tmp_path / "packer_1.bin").exists(), "Still got old file"
 
 
 def test_rotate_logs_no_keep(packer):
@@ -96,10 +98,15 @@ def test_append_ram(packer):
     packer.append([1, 2], [True])
     packed = packer.pack([1, 2], [True])
     assert bytes(packer.buf[: len(packed)]) == packed
+    assert packer.pos == 1
     packer.append([3, 4], [False])
+    assert packer.pos == 2
     unp = packer.unpack(packer.buf[len(packed) : len(packed) * 2])
     assert unp[0] == pytest.approx([3, 4])
     assert unp[1] == [False]
+    for i in range(3):
+        packer.append([3, 4], [False])
+    assert packer.pos == 5
 
 
 def test_read_ram(packer):
@@ -123,7 +130,7 @@ def test_read_ram(packer):
 def test_read_file(packer):
     packer, tmp_path = packer
     exp = []
-    for _ in range(12):
+    for _ in range(4):
         floats, bools = [1, 2], [True]
         packer.append(floats, bools)
         exp.append([floats, bools])

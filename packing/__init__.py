@@ -92,14 +92,15 @@ class PackedReadings:
 
         if self.pos % self.buffer_size == 0 and self.pos:
             self.write_log()
-        pos = self.pos * self.line_size
+        pos = self.pos % self.buffer_size * self.line_size
         self.buf[pos : pos + self.line_size] = self.pack(floats, bools)
         self.pos += 1
 
     def read(self):
         if self.pos > self.buffer_size:
             with open("{}/{}_0.bin".format(self.outdir, self.name), "rb") as f:
-                yield self.unpack(f.read(self.line_size))
-        for i in range(self.pos):
+                for _ in range((self.pos // self.buffer_size) * self.buffer_size):
+                    yield self.unpack(f.read(self.line_size))
+        for i in range(self.pos % self.buffer_size):
             pos = i * self.line_size
             yield self.unpack(self.buf[pos : pos + self.line_size])
