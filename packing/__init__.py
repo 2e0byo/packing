@@ -67,6 +67,10 @@ class PackedReadings:
             bools = []
         return floats, bools
 
+    @property
+    def logf(self):
+        return "{}/{}_0.bin".format(self.outdir, self.name)
+
     def rotate_logs(self):
         if self.keep_logs:
             logs = [
@@ -83,12 +87,12 @@ class PackedReadings:
                 )
 
         else:
-            os.remove("{}/{}_0.bin".format(self.outdir, self.name))
+            os.remove(self.logf)
 
         self.pos = 0
 
     def write_log(self):
-        with open("{}/{}_0.bin".format(self.outdir, self.name), "ab") as f:
+        with open(self.logf, "ab") as f:
             f.write(self.buf)
 
     def append(self, floats=None, bools=None):
