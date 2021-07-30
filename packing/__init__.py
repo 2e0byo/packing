@@ -105,11 +105,17 @@ class PackedReadings:
         self.buf[pos : pos + self.line_size] = self.pack(floats, bools)
         self.pos += 1
 
-    def read(self):
+    def read(self, logf=None):
+        if not logf:
+            logf = self.logf
         if self.pos > self.buffer_size:
-            with open("{}/{}_0.bin".format(self.outdir, self.name), "rb") as f:
-                for _ in range((self.pos // self.buffer_size) * self.buffer_size):
-                    yield self.unpack(f.read(self.line_size))
-        for i in range(self.pos % self.buffer_size):
-            pos = i * self.line_size
-            yield self.unpack(self.buf[pos : pos + self.line_size])
+            with open(logf, "rb") as f:
+                while True:
+                    seg = f.read(self.line_size)
+                    if not seg:
+                        break
+                    yield self.unpack(seg)
+        if logf == self.logf:
+            for i in range(self.pos % self.buffer_size):
+                pos = i * self.line_size
+                yield self.unpack(self.buf[pos : pos + self.line_size])
