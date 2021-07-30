@@ -100,6 +100,8 @@ def test_append_logs(packer):
     for _ in range(5):
         packer.append([1, 2], [True])
     assert (tmp_path / "packer_1.bin").exists()
+    read = list(packer.read(str(tmp_path / "packer_1.bin")))
+    assert len(read) == packer.log_size, "rotated log wrong size"
 
 
 def test_append_ram(packer):
