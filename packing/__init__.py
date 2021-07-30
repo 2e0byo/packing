@@ -96,26 +96,25 @@ class PackedReadings:
             f.write(self.buf)
 
     def append(self, floats=None, bools=None):
-        if self.pos == self.log_size:
-            self.rotate_logs()
-
         if self.pos % self.buffer_size == 0 and self.pos:
             self.write_log()
         pos = self.pos % self.buffer_size * self.line_size
         self.buf[pos : pos + self.line_size] = self.pack(floats, bools)
+
+        if self.pos == self.log_size:
+            self.rotate_logs()
+
         self.pos += 1
 
     def read(self, logf=None):
-        if not logf:
-            logf = self.logf
-        if self.pos > self.buffer_size:
-            with open(logf, "rb") as f:
+        if logf or self.pos > self.buffer_size:
+            with open(logf if logf else self.logf, "rb") as f:
                 while True:
                     seg = f.read(self.line_size)
                     if not seg:
                         break
                     yield self.unpack(seg)
-        if logf == self.logf:
+        if not logf:
             for i in range(self.pos % self.buffer_size):
                 pos = i * self.line_size
                 yield self.unpack(self.buf[pos : pos + self.line_size])
