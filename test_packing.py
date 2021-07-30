@@ -79,6 +79,17 @@ def test_rotate_logs_no_keep(packer):
     assert not (tmp_path / "packer_1.bin").exists()
 
 
+def test_read_logf(packer):
+    from devtools import debug
+
+    packer, tmp_path = packer
+    for _ in range(5):
+        packer.append([1, 2], [True])
+    packer.write_log()
+    resp = list(packer.read(str(tmp_path / "packer_0.bin")))
+    assert len(resp) == 5
+
+
 def test_append_logs(packer):
     packer, tmp_path = packer
     for _ in range(5):
