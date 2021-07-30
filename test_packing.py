@@ -149,6 +149,7 @@ def test_read_file(packer):
         exp.append([floats, bools])
 
     resp = list(packer.read())
+    assert len(resp) == 8
     for i, x in enumerate(resp):
         floats, bools = x
         assert floats == pytest.approx(exp[i][0])
