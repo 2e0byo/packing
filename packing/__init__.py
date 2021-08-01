@@ -38,6 +38,7 @@ class PackedReadings:
         self.name = name
         self.pos = 0
         self.rotate_logs()
+        self._to_read, self._n = 0, 0
 
     def pack(self, floats=None, bools=None):
         if self.bool_bytes:
@@ -67,9 +68,8 @@ class PackedReadings:
             bools = []
         return floats, bools
 
-    @property
-    def logf(self):
-        return "{}/{}_0.bin".format(self.outdir, self.name)
+    def logf(self, n=0):
+        return "{}/{}_{}.bin".format(self.outdir, self.name, n)
 
     def rotate_logs(self):
         if self.keep_logs:
@@ -87,12 +87,12 @@ class PackedReadings:
                 )
 
         else:
-            os.remove(self.logf)
+            os.remove(self.logf())
 
         self.pos = 0
 
     def write_log(self):
-        with open(self.logf, "ab") as f:
+        with open(self.logf(), "ab") as f:
             f.write(self.buf)
 
     def append(self, floats=None, bools=None):
@@ -106,15 +106,52 @@ class PackedReadings:
 
         self.pos += 1
 
-    def read(self, logf=None):
-        if logf or self.pos > self.buffer_size:
-            with open(logf if logf else self.logf, "rb") as f:
-                while True:
-                    seg = f.read(self.line_size)
-                    if not seg:
-                        break
-                    yield self.unpack(seg)
-        if not logf:
-            for i in range(self.pos % self.buffer_size):
-                pos = i * self.line_size
-                yield self.unpack(self.buf[pos : pos + self.line_size])
+    def _reader(self, logf, skip_rows):
+        with open(logf, "rb") as f:
+            print(f"Reading from {logf} skipping {skip_rows}")
+            f.read(skip_rows * self.line_size)
+            while self._to_read:
+                seg = f.read(self.line_size)
+                if not seg:
+                    break
+                yield self.unpack(seg)
+                self._to_read -= 1
+
+    def read(self, logf=None, n=None, skip=0):
+        if not n:
+            n = self.log_size if logf else self.pos
+        self._to_read = n
+
+        if logf:
+            if skip:
+                skip = self.log_size - n - skip
+            yield from self._reader(logf, skip)
+            return
+
+        rows_in_buffer = self.pos % self.buffer_size
+        rows_in_f = self.pos - rows_in_buffer
+        total_rows_needed = n + skip
+        f_rows_needed = total_rows_needed - rows_in_buffer
+
+        if f_rows_needed > rows_in_f:
+            # partial file is full file
+            other_rows = f_rows_needed - rows_in_f
+            fs, partial_f_rows = divmod(other_rows, self.log_size)
+            fs += 1
+            skip = self.log_size - partial_f_rows
+        elif f_rows_needed:
+            fs = 0
+            skip = rows_in_f - f_rows_needed
+            partial_f_rows = f_rows_needed
+
+        if f_rows_needed:
+            yield from self._reader(self.logf(fs), skip)
+            skip = 0
+            for i in range(fs - 1, -1, -1):
+                yield from self._reader(self.logf(i), 0)
+
+        # read from ram
+        while self._to_read:
+            pos = (self.pos % self.buffer_size - skip - self._to_read) * self.line_size
+            yield self.unpack(self.buf[pos : pos + self.line_size])
+            self._to_read -= 1
