@@ -183,7 +183,7 @@ def test_read_file(packer):
         assert bools == exp[i][1]
 
 
-regions = [(2, 0), (2, 2), (5, 5), (4, 10), (17, 0), (16, 1)]
+regions = [(2, 0), (2, 2), (5, 5), (4, 10), (17, 0), (15, 1)]
 
 
 @pytest.mark.parametrize("n,skip", regions)
@@ -214,3 +214,7 @@ def test_read_too_large(packer):
 
     resp = list(packer.read(n=19))
     assert len(resp) == 17
+    for i, x in enumerate(resp):
+        floats, bools = x
+        assert floats == pytest.approx(exp[i][0])
+        assert bools == exp[i][1]
