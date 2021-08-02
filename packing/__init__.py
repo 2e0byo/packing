@@ -83,7 +83,10 @@ class PackedReadings:
                 )
 
         else:
-            os.remove("{}/{}_0.bin".format(self.outdir, self.name))
+            try:
+                os.remove("{}/{}_0.bin".format(self.outdir, self.name))
+            except Exception:
+                pass
 
         self.pos = 0
 
