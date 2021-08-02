@@ -87,12 +87,9 @@ class PackedReadings:
                 if fn.startswith(self.name)
             ]
             for i in (x for x in logs if x > self.keep_logs - 1):
-                os.remove("{}/{}_{}.bin".format(self.outdir, self.name, i))
+                os.remove(self.logf(i))
             for i in (x for x in logs if x <= self.keep_logs - 1):
-                os.rename(
-                    "{}/{}_{}.bin".format(self.outdir, self.name, i),
-                    "{}/{}_{}.bin".format(self.outdir, self.name, i + 1),
-                )
+                os.rename(self.logf(i), self.logf(i + 1))
 
         else:
             try:
