@@ -127,7 +127,7 @@ class PackedReadings:
                         break
                     yield self.unpack(seg)
                     self._to_read -= 1
-        except nofilerror:
+        except nofileerror:
             pass
 
     def read(self, logf=None, n=None, skip=0):
