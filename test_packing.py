@@ -117,7 +117,6 @@ def test_read_logf_regions(n, skip, packer):
     exp = exp[len(exp) - n - skip : len(exp) - skip]
     assert len(exp) == n, "Error in test"
     assert len(resp) == n
-    debug(exp, resp)
     for i, x in enumerate(resp):
         floats, bools = x
         assert floats == pytest.approx(exp[i][0])
@@ -180,7 +179,6 @@ def test_read_file(packer):
 
     resp = list(packer.read())
     assert len(resp) == 8
-    debug(resp, exp)
     for i, x in enumerate(resp):
         floats, bools = x
         assert floats == pytest.approx(exp[i][0])
@@ -199,18 +197,15 @@ def test_read_regions(n, skip, packer):
         packer.append(floats, bools)
         exp.append([floats, bools])
 
-    debug(tmp_path.glob("*"))
     resp = list(packer.read(n=n, skip=skip))
     exp = exp[len(exp) - n - skip : len(exp) - skip]
     assert len(resp) == len(exp)
-    debug(resp, exp)
     for i, x in enumerate(resp):
         floats, bools = x
         assert floats == pytest.approx(exp[i][0])
         assert bools == exp[i][1]
 
 
-@pytest.mark.xfail
 def test_read_too_large(packer):
     packer, tmp_path = packer
     exp = []
