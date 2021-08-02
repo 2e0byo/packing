@@ -187,8 +187,7 @@ def test_read_file(packer):
         assert bools == exp[i][1]
 
 
-regions = [(2, 0), (2, 2), (5, 5), (4, 10)]
-# replace
+regions = [(2, 0), (2, 2), (5, 5), (4, 10), (17, 0), (16, 1)]
 
 
 @pytest.mark.parametrize("n,skip", regions)
