@@ -133,10 +133,8 @@ class PackedReadings:
             yield from self._reader(logf, skip)
             return
 
-        rows_in_buffer = self.buffer_pos
-        rows_in_f = self.pos - rows_in_buffer
-        total_rows_needed = n + skip
-        f_rows_needed = total_rows_needed - rows_in_buffer
+        rows_in_f = self.pos - self.buffer_pos
+        f_rows_needed = n + skip - self.buffer_pos
 
         if f_rows_needed > rows_in_f:
             # partial file is full file
@@ -149,8 +147,6 @@ class PackedReadings:
             fs = 0
             skip = rows_in_f - f_rows_needed
             partial_f_rows = f_rows_needed
-        else:  # testing
-            fs = 0
 
         if f_rows_needed:
             yield from self._reader(self.logf(fs), skip)
@@ -160,11 +156,10 @@ class PackedReadings:
 
         # read from ram
         i = 0
-        while self._to_read:
+        while i < self._to_read:
             pos = (skip + i) * self.line_size
             region = self.buf[pos : pos + self.line_size]
             if not region or i == self.buffer_pos:
                 break
             yield self.unpack(region)
-            self._to_read -= 1
             i += 1
