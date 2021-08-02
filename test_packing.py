@@ -1,6 +1,6 @@
 import packing
-from devtools import debug
 import pytest
+from devtools import debug
 
 
 def test_pack_bools_all():
@@ -49,6 +49,7 @@ def packer(tmp_path):
         floats=2,
         bools=1,
         buffer_size=5,
+        keep_logs=5,
     )
     yield p, tmp_path
 
@@ -80,6 +81,46 @@ def test_rotate_logs_no_keep(packer):
     assert not (tmp_path / "packer_1.bin").exists()
 
 
+def test_read_logf(packer):
+    packer, tmp_path = packer
+    for _ in range(5):
+        packer.append([1, 2], [True])
+    packer.write_log()
+    resp = list(packer.read(str(tmp_path / "packer_0.bin")))
+    assert len(resp) == 5
+
+
+def test_read_no_logf(packer):
+    packer, tmp_path = packer
+    for _ in range(5):
+        packer.append([1, 2], [True])
+    packer.write_log()
+    resp = list(packer.read(str(tmp_path / "packer_5.bin")))
+    assert resp == []
+
+
+logf_regions = [(5, 0), (3, 0), (5, 0), (3, 2)]
+
+
+@pytest.mark.parametrize("n, skip", logf_regions)
+def test_read_logf_regions(n, skip, packer):
+    packer, tmp_path = packer
+    exp = []
+    for i in range(10):
+        floats, bools = [i, i + 1], [True if i % 2 else False]
+        packer.append(floats, bools)
+        exp.append([floats, bools])
+    packer.write_log()
+    resp = list(packer.read(str(tmp_path / "packer_0.bin"), n, skip))
+    exp = exp[len(exp) - n - skip : len(exp) - skip]
+    assert len(exp) == n, "Error in test"
+    assert len(resp) == n
+    for i, x in enumerate(resp):
+        floats, bools = x
+        assert floats == pytest.approx(exp[i][0])
+        assert bools == exp[i][1]
+
+
 def test_append_logs(packer):
     packer, tmp_path = packer
     for _ in range(5):
@@ -90,6 +131,8 @@ def test_append_logs(packer):
     for _ in range(5):
         packer.append([1, 2], [True])
     assert (tmp_path / "packer_1.bin").exists()
+    read = list(packer.read(str(tmp_path / "packer_1.bin")))
+    assert len(read) == packer.log_size, "rotated log wrong size"
 
 
 def test_append_ram(packer):
@@ -112,11 +155,8 @@ def test_append_ram(packer):
 def test_read_ram(packer):
     packer, tmp_path = packer
     exp = []
-    for _ in range(2):
-        floats, bools = [1, 2], [True]
-        packer.append(floats, bools)
-        exp.append([floats, bools])
-        floats, bools = [3, 4], [False]
+    for i in range(4):
+        floats, bools = [i, i + 1], [True if i % 2 else False]
         packer.append(floats, bools)
         exp.append([floats, bools])
 
@@ -130,15 +170,50 @@ def test_read_ram(packer):
 def test_read_file(packer):
     packer, tmp_path = packer
     exp = []
-    for _ in range(4):
-        floats, bools = [1, 2], [True]
-        packer.append(floats, bools)
-        exp.append([floats, bools])
-        floats, bools = [3, 4], [False]
+    for i in range(8):
+        floats, bools = [i, i + 1], [True if i % 2 else False]
         packer.append(floats, bools)
         exp.append([floats, bools])
 
     resp = list(packer.read())
+    assert len(resp) == 8
+    for i, x in enumerate(resp):
+        floats, bools = x
+        assert floats == pytest.approx(exp[i][0])
+        assert bools == exp[i][1]
+
+
+regions = [(2, 0), (2, 2), (5, 5), (4, 10), (17, 0), (15, 1)]
+
+
+@pytest.mark.parametrize("n,skip", regions)
+def test_read_regions(n, skip, packer):
+    packer, tmp_path = packer
+    exp = []
+    for i in range(17):
+        floats, bools = [i, i + 1], [True if i % 2 else False]
+        packer.append(floats, bools)
+        exp.append([floats, bools])
+
+    resp = list(packer.read(n=n, skip=skip))
+    exp = exp[len(exp) - n - skip : len(exp) - skip]
+    assert len(resp) == len(exp)
+    for i, x in enumerate(resp):
+        floats, bools = x
+        assert floats == pytest.approx(exp[i][0])
+        assert bools == exp[i][1]
+
+
+def test_read_too_large(packer):
+    packer, tmp_path = packer
+    exp = []
+    for i in range(17):
+        floats, bools = [i, i + 1], [True if i % 2 else False]
+        packer.append(floats, bools)
+        exp.append([floats, bools])
+
+    resp = list(packer.read(n=19))
+    assert len(resp) == 17
     for i, x in enumerate(resp):
         floats, bools = x
         assert floats == pytest.approx(exp[i][0])
