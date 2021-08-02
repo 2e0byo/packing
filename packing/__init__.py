@@ -3,8 +3,12 @@ import math
 
 try:
     import uos as os
+
+    nofileerror = OSError
 except ImportError:
     import os
+
+    nofileerror = FileNotFoundError
 
 
 def pack_bools(bools):
@@ -123,7 +127,7 @@ class PackedReadings:
                         break
                     yield self.unpack(seg)
                     self._to_read -= 1
-        except (FileNotFoundError, OSError):  # micropython throws OSError
+        except nofilerror:
             pass
 
     def read(self, logf=None, n=None, skip=0):
