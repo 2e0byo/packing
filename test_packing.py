@@ -82,8 +82,6 @@ def test_rotate_logs_no_keep(packer):
 
 
 def test_read_logf(packer):
-    from devtools import debug
-
     packer, tmp_path = packer
     for _ in range(5):
         packer.append([1, 2], [True])

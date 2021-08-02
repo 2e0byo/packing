@@ -71,6 +71,10 @@ class PackedReadings:
     def logf(self, n=0):
         return "{}/{}_{}.bin".format(self.outdir, self.name, n)
 
+    @property
+    def buffer_pos(self):
+        return self.pos % self.buffer_size
+
     def rotate_logs(self):
         if self.keep_logs:
             logs = [
@@ -96,9 +100,9 @@ class PackedReadings:
             f.write(self.buf)
 
     def append(self, floats=None, bools=None):
-        if self.pos % self.buffer_size == 0 and self.pos:
+        if self.buffer_pos == 0 and self.pos:
             self.write_log()
-        pos = self.pos % self.buffer_size * self.line_size
+        pos = self.buffer_pos * self.line_size
         self.buf[pos : pos + self.line_size] = self.pack(floats, bools)
 
         if self.pos == self.log_size:
@@ -129,7 +133,7 @@ class PackedReadings:
             yield from self._reader(logf, skip)
             return
 
-        rows_in_buffer = self.pos % self.buffer_size
+        rows_in_buffer = self.buffer_pos
         rows_in_f = self.pos - rows_in_buffer
         total_rows_needed = n + skip
         f_rows_needed = total_rows_needed - rows_in_buffer
@@ -138,23 +142,29 @@ class PackedReadings:
             # partial file is full file
             other_rows = f_rows_needed - rows_in_f
             fs, partial_f_rows = divmod(other_rows, self.log_size)
-            fs += 1
-            skip = self.log_size - partial_f_rows
+            if skip:
+                skip = self.log_size - partial_f_rows
+                fs += 1
         elif f_rows_needed:
             fs = 0
             skip = rows_in_f - f_rows_needed
             partial_f_rows = f_rows_needed
+        else:  # testing
+            fs = 0
 
         if f_rows_needed:
             yield from self._reader(self.logf(fs), skip)
             skip = 0
             for i in range(fs - 1, -1, -1):
-                yield from self._reader(self.logf(i), 0)
+                yield from self._reader(self.logf(i), skip)
 
         # read from ram
+        i = 0
         while self._to_read:
-            pos = (self.pos % self.buffer_size - skip - self._to_read) * self.line_size
-            yield self.unpack(self.buf[pos : pos + self.line_size])
+            pos = (skip + i) * self.line_size
+            region = self.buf[pos : pos + self.line_size]
             if not region or i == self.buffer_pos:
                 break
+            yield self.unpack(region)
             self._to_read -= 1
+            i += 1
