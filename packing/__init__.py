@@ -123,8 +123,7 @@ class PackedReadings:
         self._to_read = n
 
         if logf:
-            if skip:
-                skip = self.log_size - n - skip
+            skip = self.log_size - n - skip
             yield from self._reader(logf, skip)
             return
 
