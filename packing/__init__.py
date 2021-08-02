@@ -107,15 +107,17 @@ class PackedReadings:
         self.pos += 1
 
     def _reader(self, logf, skip_rows):
-        with open(logf, "rb") as f:
-            print(f"Reading from {logf} skipping {skip_rows}")
-            f.read(skip_rows * self.line_size)
-            while self._to_read:
-                seg = f.read(self.line_size)
-                if not seg:
-                    break
-                yield self.unpack(seg)
-                self._to_read -= 1
+        try:
+            with open(logf, "rb") as f:
+                f.read(skip_rows * self.line_size)
+                while self._to_read:
+                    seg = f.read(self.line_size)
+                    if not seg:
+                        break
+                    yield self.unpack(seg)
+                    self._to_read -= 1
+        except (FileNotFoundError, OSError):  # micropython throws OSError
+            pass
 
     def read(self, logf=None, n=None, skip=0):
         if not n:
@@ -153,4 +155,6 @@ class PackedReadings:
         while self._to_read:
             pos = (self.pos % self.buffer_size - skip - self._to_read) * self.line_size
             yield self.unpack(self.buf[pos : pos + self.line_size])
+            if not region or i == self.buffer_pos:
+                break
             self._to_read -= 1
