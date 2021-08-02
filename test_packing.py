@@ -92,6 +92,38 @@ def test_read_logf(packer):
     assert len(resp) == 5
 
 
+def test_read_no_logf(packer):
+    packer, tmp_path = packer
+    for _ in range(5):
+        packer.append([1, 2], [True])
+    packer.write_log()
+    resp = list(packer.read(str(tmp_path / "packer_5.bin")))
+    assert resp == []
+
+
+logf_regions = [(5, 0), (3, 0), (5, 0), (3, 2)]
+
+
+@pytest.mark.parametrize("n, skip", logf_regions)
+def test_read_logf_regions(n, skip, packer):
+    packer, tmp_path = packer
+    exp = []
+    for i in range(10):
+        floats, bools = [i, i + 1], [True if i % 2 else False]
+        packer.append(floats, bools)
+        exp.append([floats, bools])
+    packer.write_log()
+    resp = list(packer.read(str(tmp_path / "packer_0.bin"), n, skip))
+    exp = exp[len(exp) - n - skip : len(exp) - skip]
+    assert len(exp) == n, "Error in test"
+    assert len(resp) == n
+    debug(exp, resp)
+    for i, x in enumerate(resp):
+        floats, bools = x
+        assert floats == pytest.approx(exp[i][0])
+        assert bools == exp[i][1]
+
+
 def test_append_logs(packer):
     packer, tmp_path = packer
     for _ in range(5):
