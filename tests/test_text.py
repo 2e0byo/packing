@@ -42,18 +42,25 @@ def test_rotate(log):
         assert f.read() == "overflow\n"
 
 
-def test_read_logf(log):
+def test_read_no_logf(log):
     log, outdir = log
     exp = []
-    for i in range(11):
+    for i in range(10):
         l = f"test line {i}"
         log.append(l)
         exp.append(l)
-    assert not (outdir / "log_1.log").exists(), "Overflowed"
-    assert (outdir / "log_0.log").exists(), "No Outf"
-    log.append("overflow")
-    print(list(outdir.glob("*")))
-    assert (outdir / "log_1.log").exists()
-    assert (outdir / "log_0.log").exists()
-    with (outdir / "log_0.log").open() as f:
-        assert f.read() == "overflow\n"
+
+    resp = list(log.read())
+    assert resp == exp
+
+
+def test_read_logf(log):
+    log, outdir = log
+    exp = []
+    for i in range(10):
+        l = f"test line {i}"
+        log.append(l)
+        exp.append(l)
+
+    resp = list(log.read(str(outdir / "log_0.log")))
+    assert resp == exp
