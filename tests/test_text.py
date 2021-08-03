@@ -64,3 +64,21 @@ def test_read_logf(log):
 
     resp = list(log.read(str(outdir / "log_0.log")))
     assert resp == exp
+
+
+regions = [(2, 0), (2, 2), (5, 5), (4, 10), (17, 0), (15, 1)]
+
+
+@pytest.mark.parametrize("n,skip", regions)
+def test_read_regions(n, skip, log):
+    log, outdir = log
+    exp = []
+    for i in range(17):
+        l = f"test line {i}"
+        log.append(l)
+        exp.append(l)
+
+    resp = list(log.read(n=n, skip=skip))
+    exp = exp[len(exp) - n - skip : len(exp) - skip]
+    resp = list(log.read(str(outdir / "log_0.log")))
+    assert resp == exp
