@@ -2,7 +2,7 @@
 try:
     import uos as os
 
-    nofileerror = OSError
+    nofileerror = OSError  # pragma: no cover
 except ImportError:
     import os
 
