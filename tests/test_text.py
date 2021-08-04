@@ -54,6 +54,21 @@ def test_read_no_logf(log):
     assert resp == exp
 
 
+def test_empty_log_line(log):
+    log, outdir = log
+    exp = []
+    for i in range(8):
+        l = f"test line {i}"
+        log.append(l)
+        exp.append(l)
+
+    log.append("")
+    exp.append("")
+
+    resp = list(log.read())
+    assert resp == exp
+
+
 def test_read_logf(log):
     log, outdir = log
     exp = []
@@ -79,6 +94,20 @@ def test_read_regions(n, skip, log):
         exp.append(l)
 
     resp = list(log.read(n=n, skip=skip))
+    assert len(resp) == n
+    print(exp)
     exp = exp[len(exp) - n - skip : len(exp) - skip]
-    resp = list(log.read(str(outdir / "log_0.log")))
+    assert resp == exp
+
+
+def test_read_too_large(log):
+    log, outdir = log
+    exp = []
+    for i in range(17):
+        l = f"test line {i}"
+        log.append(l)
+        exp.append(l)
+
+    resp = list(log.read(n=19))
+    assert len(resp) == 17
     assert resp == exp
