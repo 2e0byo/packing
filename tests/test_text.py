@@ -35,11 +35,50 @@ def test_rotate(log):
     assert not (outdir / "log_1.log").exists(), "Overflowed"
     assert (outdir / "log_0.log").exists(), "No Outf"
     log.append("overflow")
-    print(list(outdir.glob("*")))
     assert (outdir / "log_1.log").exists()
     assert (outdir / "log_0.log").exists()
     with (outdir / "log_0.log").open() as f:
         assert f.read() == "overflow\n"
+
+
+def test_rotate(log):
+    log, outdir = log
+    exp = []
+    for i in range(30):
+        l = f"test line {i}"
+        log.append(l)
+        exp.append(l)
+    assert (outdir / "log_0.log").exists()
+    assert (outdir / "log_1.log").exists()
+    assert not (outdir / "log_2.log").exists()
+
+
+def test_rotate_no_keep(log):
+    log, outdir = log
+    log.keep_logs = 0
+    exp = []
+    for i in range(10):
+        l = f"test line {i}"
+        log.append(l)
+        exp.append(l)
+    assert not (outdir / "log_1.log").exists(), "Overflowed"
+    assert (outdir / "log_0.log").exists(), "No Outf"
+    log.append("overflow")
+    assert log.pos == 1
+    assert not (outdir / "log_1.log").exists()
+    assert (outdir / "log_0.log").exists()
+    with (outdir / "log_0.log").open() as f:
+        assert f.read() == "overflow\n"
+
+
+def test_rotate_no_log(log):
+    log, outdir = log
+    log.keep_logs = 0
+    log.append("")
+    (outdir / "log_0.log").unlink()
+    log.rotate_logs()
+    assert log.pos == 0
+    assert not (outdir / "log_0.log").exists()
 
 
 def test_read_no_logf(log):
