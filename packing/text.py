@@ -41,7 +41,10 @@ class RotatingLog:
                 for _ in range(skip):
                     f.readline()
                 while self._to_read:
-                    yield f.readline()[:-1]
+                    x = f.readline()
+                    if not x:
+                        break
+                    yield x[:-1]
                     self._to_read -= 1
         except nofileerror:
             pass
@@ -54,6 +57,9 @@ class RotatingLog:
 
         total_lines = skip + self._to_read
         fs, skip = divmod(total_lines - self.pos, self.log_lines)
+        if fs >= 0:
+            fs += 1
+        skip = self.log_lines - skip
         fs = max(fs, 0)
         if fs:
             for i in range(fs, -1, -1):
