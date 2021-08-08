@@ -13,11 +13,6 @@ class PackedRotatingLog(RotatingLog):
         self.bools = bools
         self.ints = ints
         self.ext = "bin"
-        self.line_size = (
-            self.bool_bytes
-            + len(struct.pack("f", 99.78)) * floats
-            + len(struct.pack("i", 123678)) * ints
-        )
         super().__init__(name, outdir, **kwargs)
 
     @property
