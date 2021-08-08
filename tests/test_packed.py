@@ -38,3 +38,37 @@ def test_pack_unpack(packer, equal):
     exp = [[[45, 76.9], [True, False] * 4]]
     packed = packer.pack(*exp[0])
     assert equal(exp, [packer.unpack(packed)])
+
+
+def test_pack_unpack_nobool(packer, equal):
+    packer, tmp_path = packer
+    packer.bools = 0
+    exp = [[[45, 76.9], []]]
+    packed = packer.pack(*exp[0])
+    assert equal(exp, [packer.unpack(packed)])
+
+
+def test_pack_unpack_nofloat(packer, equal):
+    packer, tmp_path = packer
+    packer.floats = 0
+    exp = [[[], [True, False] * 4]]
+    packed = packer.pack(*exp[0])
+    assert equal(exp, [packer.unpack(packed)])
+
+
+regions = [(2, 0), (2, 2), (5, 5), (4, 10), (17, 0), (15, 1)]
+
+
+@pytest.mark.parametrize("n,skip", regions)
+def test_read_regions(n, skip, packer, equal):
+    packer, tmp_path = packer
+    exp = []
+    for i in range(17):
+        floats, bools = [i, i + 1], [True if i % 2 else False]
+        packer.append(floats=floats, bools=bools)
+        exp.append([floats, bools])
+
+    resp = list(packer.read(n=n, skip=skip))
+    exp = exp[len(exp) - n - skip : len(exp) - skip]
+    assert len(resp) == len(exp)
+    assert equal(exp, resp)
