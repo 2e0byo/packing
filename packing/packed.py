@@ -42,20 +42,19 @@ class PackedRotatingLog(RotatingLog):
                 for i in range(0, len(bools), 8)
             ]
 
-            args = []
-
         # micropython only allows one * expansion per line
+        args = []
         if floats:
             args += floats
-        if bools:
-            args += bools
         if ints:
             args += ints
-        packed = struct.pack(self.pack_string, *args)
+        if bools:
+            args += bools
+        packed = struct.pack(self.struct_string, *args)
         return packed
 
     def unpack(self, packed):
-        unpacked = struct.unpack(self.pack_string, packed)
+        unpacked = struct.unpack(self.struct_string, packed)
         bools, ints, floats = (), (), ()
         if self.bools:
             bools = []
@@ -63,17 +62,17 @@ class PackedRotatingLog(RotatingLog):
                 bools += unpack_bools(byte)
             bools = tuple(bools)
         if self.ints:
-            ints = unpacked[self.float_bytes : self.float_bytes + self.int_bytes]
+            ints = unpacked[self.floats : self.floats + self.ints]
         if self.floats:
-            floats = unpacked[self.float_bytes]
+            floats = unpacked[: self.floats]
         return Line(floats, ints, bools)
 
     def rotate_logs(self):
         super().rotate_logs()
         self.pos = 0
 
-    def append(self, floats=None, bools=None):
-        line = self.pack(floats, bools)
+    def append(self, **kwargs):
+        line = self.pack(**kwargs)
         super().append(line)
 
     def writeln(self, line):
