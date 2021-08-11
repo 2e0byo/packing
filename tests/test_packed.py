@@ -65,5 +65,4 @@ def test_read_regions(n, skip, packer, equal):
 
         resp = list(packer.read(n=n, skip=skip))
     exp = exp[len(exp) - n - skip : len(exp) - skip]
-    assert len(resp) == len(exp)
     assert equal(exp, resp)

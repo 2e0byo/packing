@@ -4,6 +4,7 @@ import pytest
 @pytest.fixture
 def equal():
     def eq(exp, resp):
+        assert len(exp) == len(resp), "Different lengths"
         for eline, rline in zip(exp, resp):
             print(eline)
             assert tuple(eline[2]) == rline[2], "Bools not equal"
