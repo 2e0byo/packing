@@ -105,6 +105,27 @@ def test_rotate_logs_no_keep(packer):
     assert not (tmp_path / "log_1.bin").exists()
 
 
+def test_rotate_trigger(packer, equal):
+    packer, tmp_path = packer
+    exp = []
+    for i in range(packer.log_lines):
+        floats, bools = [i, i + 1], [True if i % 2 else False] * 8
+        packer.append(floats=floats, bools=bools, ints=floats)
+        exp.append([floats, floats, bools])
+
+    log0 = tmp_path / "log_0.bin"
+    log1 = tmp_path / "log_1.bin"
+    assert log0.exists(), "Failed to make file"
+    assert not log1.exists()
+    packer.append(floats=floats, bools=[True, False, False, True] * 2, ints=floats)
+    assert not log0.exists()
+    assert log1.exists()
+    resp = list(packer.read(str(log1)))
+    debug(resp)
+    assert equal(exp, resp)
+    assert list(packer.read(n=1))[-1].bools == tuple([True, False, False, True] * 2)
+
+
 def test_read_no_logf(packer):
     packer, tmp_path = packer
     for i in range(6):
