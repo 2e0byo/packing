@@ -20,6 +20,11 @@ def test_equal(equal):
         assert equal(a, c)
 
 
+def test_logf(packer):
+    packer, tmp_path = packer
+    assert packer.logf() == str(tmp_path / "log_0.bin")
+
+
 def test_pack_unpack(packer, equal):
     packer, tmp_path = packer
     exp = [[[45, 76.9], [123478, 123498], [True, False] * 4]]
