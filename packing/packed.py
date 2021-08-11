@@ -81,13 +81,16 @@ class PackedRotatingLog(RotatingLog):
 
     def _reader(self, logf, skip):
         try:
+            print(f"reading from {logf} and skipping {skip}")
             with open(logf, "rb") as f:
                 f.seek(skip * self.line_size)
-                while self._to_read:
+                i = skip
+                while self._to_read and i < self.log_lines:
                     seg = f.read(self.line_size)
                     if not seg:
                         break
                     yield self.unpack(seg)
                     self._to_read -= 1
+                    i += 1
         except nofileerror:
             pass
