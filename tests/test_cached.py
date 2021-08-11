@@ -136,7 +136,14 @@ def test_read_no_logf(packer):
     assert resp == []
 
 
-regions = [(2, 0), (2, 2), (5, 5), (4, 10), (17, 0), (15, 1)]
+regions = [
+    (2, 0),
+    (2, 2),
+    (5, 5),
+    (4, 10),
+    (17, 0),
+    (15, 1),
+]
 
 
 @pytest.mark.parametrize("n,skip", regions)
