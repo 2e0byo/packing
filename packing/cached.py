@@ -23,13 +23,13 @@ class CachingPackedRotatingLog(PackedRotatingLog):
     def append(self, **kwargs):
         line = self.pack(**kwargs)
 
+        if self.pos == self.log_lines:
+            self.flush()
+            self.rotate_logs()
         if self.buffer_pos == 0 and self.pos:
             self.flush()
         pos = self.buffer_pos * self.line_size
         self.buf[pos : pos + self.line_size] = line
-
-        if self.pos - self.buffer_pos == self.log_lines:
-            self.rotate_logs()
 
         self.pos += 1
 
