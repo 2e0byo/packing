@@ -71,3 +71,14 @@ def test_read_regions(n, skip, packer, equal):
         resp = list(packer.read(n=n, skip=skip))
     exp = exp[len(exp) - n - skip : len(exp) - skip]
     assert equal(exp, resp)
+
+
+def test_read_too_large(packer, equal):
+    packer, tmp_path = packer
+    exp = []
+    for i in range(17):
+        floats, bools = [i, i + 1], [True if i % 2 else False] * 8
+        packer.append(floats=floats, bools=bools, ints=floats)
+        exp.append([floats, floats, bools])
+    resp = list(packer.read(n=19))
+    assert equal(exp, resp)
