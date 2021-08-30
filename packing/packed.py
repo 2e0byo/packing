@@ -10,11 +10,10 @@ Line = namedtuple("line", ("floats", "ints", "bools", "timestamp"))
 
 class PackedRotatingLog(RotatingLog):
     def __init__(self, name, outdir, floats, ints, bools, **kwargs):
-        super().__init__(name, outdir, **kwargs)
+        super().__init__(name, outdir, ext="bin", **kwargs)
         self.floats = floats
         self.bools = bools
         self.ints = ints
-        self.ext = "bin"
 
     @property
     def bool_bytes(self):

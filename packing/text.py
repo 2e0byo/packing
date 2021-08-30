@@ -20,12 +20,13 @@ class RotatingLog:
         keep_logs=1,
         timestamp=False,
         timestamp_interval=None,
+        ext="log",
     ):
         self.name = name
         self.outdir = outdir
         self.log_lines = log_lines
         self.keep_logs = keep_logs
-        self.ext = "log"
+        self.ext = ext
         self._to_read = 0
         self._read = 0
         self._offset = 0

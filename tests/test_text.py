@@ -89,7 +89,7 @@ def test_rotate(log):
         assert f.read() == "overflow\n"
 
 
-def test_rotate(log):
+def test_rotate_simple(log):
     log, outdir = log
     exp = []
     for i in range(30):
@@ -99,6 +99,17 @@ def test_rotate(log):
     assert (outdir / "log_0.log").exists()
     assert (outdir / "log_1.log").exists()
     assert not (outdir / "log_2.log").exists()
+
+
+def test_rotate_init(tmp_path):
+    with (tmp_path / "log_0.log").open("w") as f:
+        f.write("")
+    l = RotatingLog("log", str(tmp_path), log_lines=10)
+    assert not (tmp_path / "log_0.log").exists()
+    assert (tmp_path / "log_1.log").exists()
+    l.append("test")
+    assert (tmp_path / "log_0.log").exists()
+    assert (tmp_path / "log_1.log").exists()
 
 
 def test_rotate_no_keep(log):
