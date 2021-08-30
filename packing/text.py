@@ -44,12 +44,17 @@ class RotatingLog:
 
     def writeln(self, line):
         line = "{}\n".format(line[: self.maxlen])
-        if self.timestamp:
-            line = "{}#{}".format(round(time.time()), line)
         with open(self.logf(), "a") as f:
             f.write(line)
 
+    def add_timestamp(self, line):
+        if self.timestamp:
+            return "{}#{}".format(round(time.time()), line)
+        else:
+            return line
+
     def append(self, line):
+        line = self.add_timestamp(line)
         if self.pos == self.log_lines:
             self.rotate_logs()
         self.writeln(line)
