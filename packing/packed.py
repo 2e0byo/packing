@@ -3,8 +3,9 @@ import math
 from .util import pack_bools, unpack_bools
 from .text import RotatingLog, nofileerror
 from collections import namedtuple
+import time
 
-Line = namedtuple("line", ("floats", "ints", "bools"))
+Line = namedtuple("line", ("floats", "ints", "bools", "timestamp"))
 
 
 class PackedRotatingLog(RotatingLog):
@@ -24,16 +25,30 @@ class PackedRotatingLog(RotatingLog):
         return len(struct.pack("f", 99.78) * self.floats)
 
     @property
+    def timestamp_bytes(self):
+        return len(struct.pack("f", round(time.time()))) if self.timestamp else 0
+
+    @property
     def int_bytes(self):
         return len(struct.pack("i", 12346) * self.ints)
 
     @property
     def line_size(self):
-        return self.bool_bytes + self.float_bytes + self.int_bytes
+        return (
+            self.timestamp_bytes + self.bool_bytes + self.float_bytes + self.int_bytes
+        )
 
     @property
     def struct_string(self):
-        return "f" * self.floats + "i" * self.ints + "B" * self.bool_bytes
+        struct = "f" * self.floats + "i" * self.ints + "B" * self.bool_bytes
+        if self.timestamp:
+            return "f" + struct
+        else:
+            return struct
+
+    def add_timestamp(self, line):
+        # override as we do it in pack() and unpack()
+        return line
 
     def pack(self, floats=None, ints=None, bools=None):
         if self.bool_bytes:
@@ -44,6 +59,8 @@ class PackedRotatingLog(RotatingLog):
 
         # micropython only allows one * expansion per line
         args = []
+        if self.timestamp:
+            args.append(round(time.time()))
         if floats:
             args += floats
         if ints:
@@ -53,9 +70,22 @@ class PackedRotatingLog(RotatingLog):
         packed = struct.pack(self.struct_string, *args)
         return packed
 
+    def timestampify(self, floats, ints, bools, timestamp):
+        if timestamp:
+            return Line(floats, ints, bools, time.localtime(timestamp))
+        elif self.timestamp_interval:
+            timestamp = time.time() - self.read_pos * self.timestamp_interval
+            return Line(floats, ints, bools, time.localtime(timestamp))
+        else:
+            return Line(floats, ints, bools, timestamp)
+
     def unpack(self, packed):
         unpacked = struct.unpack(self.struct_string, packed)
         bools, ints, floats = (), (), ()
+        timestamp = None
+        if self.timestamp:
+            timestamp = unpacked[0]
+            unpacked = unpacked[1:]
         if self.bools:
             bools = []
             for byte in unpacked[-self.bool_bytes :]:
@@ -65,7 +95,7 @@ class PackedRotatingLog(RotatingLog):
             ints = unpacked[self.floats : self.floats + self.ints]
         if self.floats:
             floats = unpacked[: self.floats]
-        return Line(floats, ints, bools)
+        return self.timestampify(floats, ints, bools, timestamp)
 
     def rotate_logs(self):
         super().rotate_logs()
@@ -81,16 +111,15 @@ class PackedRotatingLog(RotatingLog):
 
     def _reader(self, logf, skip):
         try:
-            print(f"reading from {logf} and skipping {skip}")
             with open(logf, "rb") as f:
                 f.seek(skip * self.line_size)
-                i = skip
-                while self._to_read and i < self.log_lines:
+                read_in_file = skip
+                while self._read < self._to_read and read_in_file < self.log_lines:
                     seg = f.read(self.line_size)
                     if not seg:
                         break
                     yield self.unpack(seg)
-                    self._to_read -= 1
-                    i += 1
+                    self._read += 1
+                    read_in_file += 1
         except nofileerror:
             pass
