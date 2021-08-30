@@ -37,6 +37,7 @@ class CachingPackedRotatingLog(PackedRotatingLog):
         if not n:
             n = self.log_lines if logf else self.pos
         self._to_read = n
+        self._read = 0
 
         if logf:
             skip = self.log_lines - n - skip
@@ -67,11 +68,12 @@ class CachingPackedRotatingLog(PackedRotatingLog):
             skip = self.buffer_pos - n - skip
 
         # read from ram
-        i = 0
-        while i < self._to_read:
+        offset = self._read
+        while self._read < self._to_read:
+            i = self._read - offset
             pos = (skip + i) * self.line_size
             region = self.buf[pos : pos + self.line_size]
             if not len(region) or i == self.buffer_pos:
                 break
             yield self.unpack(region)
-            i += 1
+            self._read += 1
