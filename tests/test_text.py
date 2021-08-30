@@ -1,5 +1,6 @@
 from packing.text import RotatingLog
 import pytest
+import time
 
 
 @pytest.fixture
@@ -15,6 +16,17 @@ def test_append_line(log):
         assert f.read() == "test line\n"
 
 
+def test_append_line_timestamp(mocker, log):
+    log, outdir = log
+    log.timestamp = True
+    mocked_time = mocker.patch("time.time")
+    mocked_time.return_value = 1630322465.354646
+    log.append("test line")
+    mocked_time.assert_called_once()
+    with (outdir / "log_0.log").open() as f:
+        assert f.read() == "1630322465#test line\n"
+
+
 def test_read_lines(log):
     log, outdir = log
     exp = []
@@ -23,6 +35,42 @@ def test_read_lines(log):
         log.append(l)
         exp.append(l)
     assert list(log.read()) == exp
+
+
+def test_read_lines_timestamp(mocker, log):
+    log, outdir = log
+    log.timestamp = True
+    mocked_time = mocker.patch("time.time")
+    mocked_time.return_value = 1630322465.354646
+    exp = []
+    for i in range(10):
+        l = f"test line {i}"
+        log.append(l)
+        exp.append((time.localtime(1630322465), l))
+    mocked_time.assert_has_calls(() * 10)
+    assert list(log.read()) == exp
+
+
+def test_read_lines_fake_timestamp(mocker, log):
+    log, outdir = log
+    log.timestamp_interval = 60
+    mocked_time = mocker.patch("time.time")
+    mocked_time.return_value = 1630322465
+    exp = []
+    for i in range(10):
+        l = f"test line {i}"
+        log.append(l)
+        exp.append((time.localtime(1630322465 - 600 + i * 60), l))
+    mocked_time.assert_has_calls(() * 10)
+    assert list(log.read()) == exp
+
+
+def test_timestampify_errorhandling(log):
+    log, outdir = log
+    log.timestamp = True
+
+    assert log.timestampify("notimestamp") == (None, "notimestamp")
+    assert log.timestampify("this#that") == (None, "this#that")
 
 
 def test_rotate(log):
