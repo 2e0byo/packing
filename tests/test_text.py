@@ -182,7 +182,6 @@ def test_read_regions(n, skip, log):
 
     resp = list(log.read(n=n, skip=skip))
     assert len(resp) == n
-    print(exp)
     exp = exp[len(exp) - n - skip : len(exp) - skip]
     assert resp == exp
 

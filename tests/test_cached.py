@@ -1,6 +1,6 @@
 from packing.cached import CachingPackedRotatingLog
-from devtools import debug
 import pytest
+import time
 
 
 def test_oversize_buffer(tmp_path):
@@ -59,7 +59,6 @@ def test_read_ram(packer, equal):
     assert packer.buffer_pos == 4
 
     resp = list(packer.read())
-    debug(exp, resp)
     assert equal(exp, resp)
 
 
@@ -121,7 +120,6 @@ def test_rotate_trigger(packer, equal):
     assert not log0.exists()
     assert log1.exists()
     resp = list(packer.read(str(log1)))
-    debug(resp)
     assert equal(exp, resp)
     assert list(packer.read(n=1))[-1].bools == tuple([True, False, False, True] * 2)
 
@@ -157,6 +155,56 @@ def test_read_regions(n, skip, packer, equal):
 
     resp = list(packer.read(n=n, skip=skip))
 
+    exp = exp[len(exp) - n - skip : len(exp) - skip]
+    assert equal(exp, resp)
+
+
+def seq():
+    n = 1000
+
+    def _seq():
+        nonlocal n
+        n += 60
+        return n
+
+    return _seq
+
+
+@pytest.mark.parametrize("n,skip", regions)
+def test_read_regions_auto_timestamp(n, skip, packer, equal, mocker):
+    packer, tmp_path = packer
+    packer.timestamp = False
+    packer.timestamp_interval = 60
+    mocked_time = mocker.patch("time.time")
+    mocked_time.return_value = 1000 + 16 * 60
+
+    exp = []
+    timestamp = seq()
+    for i in range(17):
+        floats, bools = [i, i + 1], [True if i % 2 else False] * 8
+        packer.append(floats=floats, bools=bools, ints=floats)
+        exp.append([floats, floats, bools, time.localtime(timestamp())])
+
+    resp = list(packer.read(n=n, skip=skip))
+    assert len(mocked_time.call_args_list) == n
+    exp = exp[len(exp) - n - skip : len(exp) - skip]
+    assert equal(exp, resp)
+
+
+@pytest.mark.parametrize("n,skip", regions)
+def test_read_regions_timestamp(n, skip, packer, equal, mocker):
+    packer, tmp_path = packer
+    packer.timestamp = True
+    mocked_time = mocker.patch("time.time", side_effect=seq())
+
+    exp = []
+    timestamp = seq()
+    for i in range(17):
+        floats, bools = [i, i + 1], [True if i % 2 else False] * 8
+        packer.append(floats=floats, bools=bools, ints=floats)
+        exp.append([floats, floats, bools, time.localtime(timestamp())])
+
+    resp = list(packer.read(n=n, skip=skip))
     exp = exp[len(exp) - n - skip : len(exp) - skip]
     assert equal(exp, resp)
 

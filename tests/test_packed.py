@@ -1,6 +1,7 @@
 from packing.packed import PackedRotatingLog
 from devtools import debug
 import pytest
+import time
 
 
 @pytest.fixture
@@ -30,6 +31,19 @@ def test_pack_unpack(packer, equal):
     exp = [[[45, 76.9], [123478, 123498], [True, False] * 4]]
     packed = packer.pack(*exp[0])
     assert equal(exp, [packer.unpack(packed)])
+
+
+def test_pack_unpack_timestamp(mocker, packer, equal):
+    packer, tmp_path = packer
+    packer.timestamp = True
+    mocked_time = mocker.patch("time.time")
+    mocked_time.return_value = 1630322465.354646
+    exp = [
+        [[45, 76.9], [123478, 123498], [True, False] * 4, time.localtime(1630322465)]
+    ]
+    packed = packer.pack(*exp[0][:-1])
+    assert equal(exp, [packer.unpack(packed)])
+    assert mocked_time.called_once()
 
 
 def test_pack_unpack_nobool(packer, equal):
@@ -68,7 +82,58 @@ def test_read_regions(n, skip, packer, equal):
         packer.append(floats=floats, bools=bools, ints=floats)
         exp.append([floats, floats, bools])
 
-        resp = list(packer.read(n=n, skip=skip))
+    resp = list(packer.read(n=n, skip=skip))
+    exp = exp[len(exp) - n - skip : len(exp) - skip]
+    assert equal(exp, resp)
+
+
+def seq():
+    n = 1000
+
+    def _seq():
+        nonlocal n
+        n += 60
+        return n
+
+    return _seq
+
+
+@pytest.mark.parametrize("n,skip", regions)
+def test_read_regions_timestamp(n, skip, packer, equal, mocker):
+    packer, tmp_path = packer
+    packer.timestamp = True
+    mocked_time = mocker.patch("time.time", side_effect=seq())
+
+    exp = []
+    timestamp = seq()
+    for i in range(17):
+        floats, bools = [i, i + 1], [True if i % 2 else False] * 8
+        packer.append(floats=floats, bools=bools, ints=floats)
+        exp.append([floats, floats, bools, time.localtime(timestamp())])
+
+    assert len(mocked_time.call_args_list) == 17
+    resp = list(packer.read(n=n, skip=skip))
+    exp = exp[len(exp) - n - skip : len(exp) - skip]
+    assert equal(exp, resp)
+
+
+@pytest.mark.parametrize("n,skip", regions)
+def test_read_regions_auto_timestamp(n, skip, packer, equal, mocker):
+    packer, tmp_path = packer
+    packer.timestamp = False
+    packer.timestamp_interval = 60
+    mocked_time = mocker.patch("time.time")
+    mocked_time.return_value = 1000 + 16 * 60
+
+    exp = []
+    timestamp = seq()
+    for i in range(17):
+        floats, bools = [i, i + 1], [True if i % 2 else False] * 8
+        packer.append(floats=floats, bools=bools, ints=floats)
+        exp.append([floats, floats, bools, time.localtime(timestamp())])
+
+    resp = list(packer.read(n=n, skip=skip))
+    assert len(mocked_time.call_args_list) == n
     exp = exp[len(exp) - n - skip : len(exp) - skip]
     assert equal(exp, resp)
 
