@@ -25,7 +25,7 @@ class PackedRotatingLog(RotatingLog):
 
     @property
     def timestamp_bytes(self):
-        return len(struct.pack("f", round(time.time()))) if self.timestamp else 0
+        return len(struct.pack("l", round(time.time()))) if self.timestamp else 0
 
     @property
     def int_bytes(self):
@@ -41,7 +41,7 @@ class PackedRotatingLog(RotatingLog):
     def struct_string(self):
         struct = "f" * self.floats + "i" * self.ints + "B" * self.bool_bytes
         if self.timestamp:
-            return "f" + struct
+            return "l" + struct
         else:
             return struct
 
