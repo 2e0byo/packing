@@ -47,7 +47,7 @@ def test_read_lines_timestamp(mocker, log):
         l = f"test line {i}"
         log.append(l)
         exp.append((time.localtime(1630322465), l))
-    mocked_time.assert_has_calls(() * 10)
+    assert len(mocked_time.call_args_list) == 10
     assert list(log.read()) == exp
 
 
