@@ -36,9 +36,10 @@ class RotatingLog:
         self.maxlen = 100  # chars in line
         self.timestamp = timestamp
         self.timestamp_interval = timestamp_interval
-        self.rotate_logs()
         if incorporate:
             self.incorporate_logs()
+        else:
+            self.rotate_logs()
 
     @property
     def abs_pos(self):
@@ -159,4 +160,22 @@ class RotatingLog:
     def incorporate_logs(self):
         # incorporate anything else in the outdir
         logs = self.logs_in_outdir()
-        self._abs_pos += len(logs) * self.log_lines - 1
+        if not logs:
+            return
+
+        count = 0
+
+        for line in self.read(logf=self.logf(0), n=self.log_lines):
+            count += 1
+        if count < self.log_lines:
+            self.pos += count
+        else:
+            self._abs_pos += count
+            self.rotate_logs()
+
+        logs = [x for x in self.logs_in_outdir() if x]
+        count = 0
+        for i in logs:
+            for line in self.read(logf=self.logf(i), n=self.log_lines):
+                count += 1
+        self._abs_pos += count
