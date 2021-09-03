@@ -84,7 +84,9 @@ class RotatingLog:
         else:
             return (line,)
 
-    def _reader(self, logf, skip):
+    def _reader(self, logf, skip, pos=None):
+        if pos is None:
+            pos = self.abs_pos - self._offset
         try:
             with open(logf, "r") as f:
                 for _ in range(skip):
@@ -93,7 +95,7 @@ class RotatingLog:
                     x = f.readline()
                     if not x:
                         break
-                    yield self._read, *self.timestampify(x[:-1])
+                    yield pos + self._read, *self.timestampify(x[:-1])
                     self._read += 1
         except nofileerror:
             pass
@@ -102,7 +104,7 @@ class RotatingLog:
         self._to_read = n if n else self.pos
         self._read = 0
         if logf:
-            yield from self._reader(logf, skip)
+            yield from self._reader(logf, skip, pos=0)
             return
 
         self._offset = skip + self._to_read

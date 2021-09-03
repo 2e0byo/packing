@@ -33,7 +33,7 @@ def test_read_lines(log):
     for i in range(10):
         l = f"test line {i}"
         log.append(l)
-        exp.append(l)
+        exp.append((i, l))
     assert list(log.read()) == exp
 
 
@@ -46,7 +46,7 @@ def test_read_lines_timestamp(mocker, log):
     for i in range(10):
         l = f"test line {i}"
         log.append(l)
-        exp.append((time.localtime(1630322465), l))
+        exp.append((i, time.localtime(1630322465), l))
     assert len(mocked_time.call_args_list) == 10
     assert list(log.read()) == exp
 
@@ -60,7 +60,7 @@ def test_read_lines_fake_timestamp(mocker, log):
     for i in range(10):
         l = f"test line {i}"
         log.append(l)
-        exp.append((time.localtime(1630322465 - 600 + i * 60), l))
+        exp.append((i, time.localtime(1630322465 - 600 + i * 60), l))
     mocked_time.assert_has_calls(() * 10)
     assert list(log.read()) == exp
 
@@ -146,7 +146,7 @@ def test_read_no_logf(log):
     for i in range(10):
         l = f"test line {i}"
         log.append(l)
-        exp.append(l)
+        exp.append((i, l))
 
     resp = list(log.read())
     assert resp == exp
@@ -158,10 +158,10 @@ def test_empty_log_line(log):
     for i in range(8):
         l = f"test line {i}"
         log.append(l)
-        exp.append(l)
+        exp.append((i, l))
 
     log.append("")
-    exp.append("")
+    exp.append((8, ""))
 
     resp = list(log.read())
     assert resp == exp
@@ -173,7 +173,7 @@ def test_read_logf(log):
     for i in range(10):
         l = f"test line {i}"
         log.append(l)
-        exp.append(l)
+        exp.append((i, l))
 
     resp = list(log.read(str(outdir / "log_0.log")))
     assert resp == exp
@@ -189,11 +189,14 @@ def test_read_regions(n, skip, log):
     for i in range(17):
         l = f"test line {i}"
         log.append(l)
-        exp.append(l)
+        exp.append((i, l))
 
     resp = list(log.read(n=n, skip=skip))
     assert len(resp) == n
     exp = exp[len(exp) - n - skip : len(exp) - skip]
+    from devtools import debug
+
+    debug(resp)
     assert resp == exp
 
 
@@ -203,8 +206,20 @@ def test_read_too_large(log):
     for i in range(17):
         l = f"test line {i}"
         log.append(l)
-        exp.append(l)
+        exp.append((i, l))
 
     resp = list(log.read(n=19))
     assert len(resp) == 17
     assert resp == exp
+
+
+def test_skip_too_large(log):
+    log, outdir = log
+    for i in range(17):
+        l = f"test line {i}"
+        log.append(l)
+
+    resp = list(log.read(n=2, skip=16))
+    assert len(resp) == 1
+    resp = list(log.read(n=2, skip=17))
+    assert len(resp) == 0
