@@ -22,12 +22,12 @@ def test_rotate_init(tmp_path):
 
 
 def test_equal(equal):
-    a = [((9, 8, 8), (8, 9), (True, False))]
-    b = [((9, 8, 8), (8, 9), (False, True))]
+    a = [(1, (9, 8, 8), (8, 9), (True, False))]
+    b = [((2, 9, 8, 8), (8, 9), (False, True))]
     assert equal(a, a)
     with pytest.raises(AssertionError):
         assert equal(a, b)
-    c = [((9, 9, 8), (8, 9), (True, False))]
+    c = [(1, (9, 9, 8), (8, 9), (True, False))]
     with pytest.raises(AssertionError):
         assert equal(a, c)
 
@@ -39,9 +39,9 @@ def test_logf(packer):
 
 def test_pack_unpack(packer, equal):
     packer, tmp_path = packer
-    exp = [[[45, 76.9], [123478, 123498], [True, False] * 4]]
-    packed = packer.pack(*exp[0])
-    assert equal(exp, [packer.unpack(packed)])
+    exp = [[1, [45, 76.9], [123478, 123498], [True, False] * 4]]
+    packed = packer.pack(*exp[0][1:])
+    assert equal(exp, [[1, *packer.unpack(packed)]])
 
 
 def test_pack_unpack_timestamp(mocker, packer, equal):
@@ -50,35 +50,35 @@ def test_pack_unpack_timestamp(mocker, packer, equal):
     mocked_time = mocker.patch("time.time")
     mocked_time.return_value = 1630322465.354646
     exp = [
-        [[45, 76.9], [123478, 123498], [True, False] * 4, time.localtime(1630322465)]
+        [1, [45, 76.9], [123478, 123498], [True, False] * 4, time.localtime(1630322465)]
     ]
-    packed = packer.pack(*exp[0][:-1])
-    assert equal(exp, [packer.unpack(packed)])
+    packed = packer.pack(*exp[0][1:-1])
+    assert equal(exp, [[1, *packer.unpack(packed)]])
     assert mocked_time.called_once()
 
 
 def test_pack_unpack_nobool(packer, equal):
     packer, tmp_path = packer
     packer.bools = 0
-    exp = [((45, 76.9), (12345, 6789), ())]
-    packed = packer.pack(*exp[0])
-    assert equal(exp, [packer.unpack(packed)])
+    exp = [(1, (45, 76.9), (12345, 6789), ())]
+    packed = packer.pack(*exp[0][1:])
+    assert equal(exp, [[1, *packer.unpack(packed)]])
 
 
 def test_pack_unpack_nofloat(packer, equal):
     packer, tmp_path = packer
     packer.floats = 0
-    exp = [((), (1235, 6789), (True, False) * 4)]
-    packed = packer.pack(*exp[0])
-    assert equal(exp, [packer.unpack(packed)])
+    exp = [(1, (), (1235, 6789), (True, False) * 4)]
+    packed = packer.pack(*exp[0][1:])
+    assert equal(exp, [[1, *packer.unpack(packed)]])
 
 
 def test_pack_unpack_noint(packer, equal):
     packer, tmp_path = packer
     packer.ints = 0
-    exp = [((123.89, 12378.8), (), (True, False) * 4)]
-    packed = packer.pack(*exp[0])
-    assert equal(exp, [packer.unpack(packed)])
+    exp = [(1, (123.89, 12378.8), (), (True, False) * 4)]
+    packed = packer.pack(*exp[0][1:])
+    assert equal(exp, [[1, *packer.unpack(packed)]])
 
 
 regions = [(2, 0), (2, 2), (5, 5), (4, 10), (17, 0), (15, 1)]
@@ -91,7 +91,7 @@ def test_read_regions(n, skip, packer, equal):
     for i in range(17):
         floats, bools = [i, i + 1], [True if i % 2 else False] * 8
         packer.append(floats=floats, bools=bools, ints=floats)
-        exp.append([floats, floats, bools])
+        exp.append([i, floats, floats, bools])
 
     resp = list(packer.read(n=n, skip=skip))
     exp = exp[len(exp) - n - skip : len(exp) - skip]
@@ -120,7 +120,7 @@ def test_read_regions_timestamp(n, skip, packer, equal, mocker):
     for i in range(17):
         floats, bools = [i, i + 1], [True if i % 2 else False] * 8
         packer.append(floats=floats, bools=bools, ints=floats)
-        exp.append([floats, floats, bools, time.localtime(timestamp())])
+        exp.append([i, floats, floats, bools, time.localtime(timestamp())])
 
     assert len(mocked_time.call_args_list) == 17
     resp = list(packer.read(n=n, skip=skip))
@@ -141,7 +141,7 @@ def test_read_regions_auto_timestamp(n, skip, packer, equal, mocker):
     for i in range(17):
         floats, bools = [i, i + 1], [True if i % 2 else False] * 8
         packer.append(floats=floats, bools=bools, ints=floats)
-        exp.append([floats, floats, bools, time.localtime(timestamp())])
+        exp.append([i, floats, floats, bools, time.localtime(timestamp())])
 
     resp = list(packer.read(n=n, skip=skip))
     assert len(mocked_time.call_args_list) == n
@@ -155,6 +155,17 @@ def test_read_too_large(packer, equal):
     for i in range(17):
         floats, bools = [i, i + 1], [True if i % 2 else False] * 8
         packer.append(floats=floats, bools=bools, ints=floats)
-        exp.append([floats, floats, bools])
+        exp.append([i, floats, floats, bools])
     resp = list(packer.read(n=19))
     assert equal(exp, resp)
+
+
+def test_skip_too_large(packer):
+    packer, tmp_path = packer
+    for i in range(17):
+        floats, bools = [i, i + 1], [True if i % 2 else False] * 8
+        packer.append(floats=floats, bools=bools, ints=floats)
+    resp = list(packer.read(n=2, skip=16))
+    assert len(resp) == 1
+    resp = list(packer.read(n=2, skip=17))
+    assert len(resp) == 0

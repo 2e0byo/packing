@@ -5,7 +5,7 @@ from .text import RotatingLog, nofileerror
 from collections import namedtuple
 import time
 
-Line = namedtuple("line", ("floats", "ints", "bools", "timestamp"))
+Line = namedtuple("line", ("id", "floats", "ints", "bools", "timestamp"))
 
 
 class PackedRotatingLog(RotatingLog):
@@ -71,12 +71,12 @@ class PackedRotatingLog(RotatingLog):
 
     def timestampify(self, floats, ints, bools, timestamp):
         if timestamp:
-            return Line(floats, ints, bools, time.localtime(timestamp))
+            return floats, ints, bools, time.localtime(timestamp)
         elif self.timestamp_interval:
             timestamp = time.time() - self.read_pos * self.timestamp_interval
-            return Line(floats, ints, bools, time.localtime(timestamp))
+            return floats, ints, bools, time.localtime(timestamp)
         else:
-            return Line(floats, ints, bools, timestamp)
+            return floats, ints, bools, timestamp
 
     def unpack(self, packed):
         unpacked = struct.unpack(self.struct_string, packed)
@@ -108,7 +108,10 @@ class PackedRotatingLog(RotatingLog):
         with open(self.logf(), "ab") as f:
             f.write(line)
 
-    def _reader(self, logf, skip):
+    def _reader(self, logf, skip, pos=None):
+        if pos is None:
+            pos = self.abs_pos - self._offset
+
         try:
             with open(logf, "rb") as f:
                 f.seek(skip * self.line_size)
@@ -117,7 +120,7 @@ class PackedRotatingLog(RotatingLog):
                     seg = f.read(self.line_size)
                     if not seg:
                         break
-                    yield self.unpack(seg)
+                    yield Line(pos + self._read, *self.unpack(seg))
                     self._read += 1
                     read_in_file += 1
         except nofileerror:
