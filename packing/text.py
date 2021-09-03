@@ -82,7 +82,7 @@ class RotatingLog:
             return time.localtime(timestamp), line
 
         else:
-            return line
+            return (line,)
 
     def _reader(self, logf, skip):
         try:
@@ -93,7 +93,7 @@ class RotatingLog:
                     x = f.readline()
                     if not x:
                         break
-                    yield self.timestampify(x[:-1])
+                    yield self._read, *self.timestampify(x[:-1])
                     self._read += 1
         except nofileerror:
             pass
