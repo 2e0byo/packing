@@ -20,6 +20,7 @@ class RotatingLog:
         keep_logs=1,
         timestamp=False,
         timestamp_interval=None,
+        incorporate=True,
         ext="log",
     ):
         self.name = name
@@ -33,9 +34,11 @@ class RotatingLog:
         self.pos = 0
         self._abs_pos = 0
         self.maxlen = 100  # chars in line
-        self.rotate_logs()
         self.timestamp = timestamp
         self.timestamp_interval = timestamp_interval
+        self.rotate_logs()
+        if incorporate:
+            self.incorporate_logs()
 
     @property
     def abs_pos(self):
@@ -133,7 +136,7 @@ class RotatingLog:
         logs = []
         for fn in os.listdir(self.outdir):
             if fn.startswith(self.name):
-                logs.append(fn.split("_")[-1].replace(".{}".format(self.ext, "")))
+                logs.append(fn.split("_")[-1].replace(".{}".format(self.ext), ""))
         return tuple(logs)
 
     def rotate_logs(self):
@@ -152,3 +155,9 @@ class RotatingLog:
                 pass
         self._abs_pos += self.pos
         self.pos = 0
+
+    def incorporate_logs(self):
+        # incorporate anything else in the outdir
+        # ignores log in 0
+        logs = self.logs_in_outdir()
+        self._abs_pos += len(logs) * self.log_lines - 1
