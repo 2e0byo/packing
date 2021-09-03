@@ -127,17 +127,18 @@ class RotatingLog:
             skip = self.pos - self._offset
             yield from self._reader(self.logf(), skip)
 
+    def logs_in_outdir(self):
+        # warning: this is quite flaky
+        # uPy has no glob
+        logs = []
+        for fn in os.listdir(self.outdir):
+            if fn.startswith(self.name):
+                logs.append(fn.split("_")[-1].replace(".{}".format(self.ext, "")))
+        return tuple(logs)
+
     def rotate_logs(self):
         if self.keep_logs:
-            logs = [
-                int(fn.split("_")[-1].replace(".{}".format(self.ext), ""))
-                for fn in os.listdir(self.outdir)
-                if fn.startswith(self.name)
-            ]
-            for i in (x for x in logs if x > self.keep_logs - 1):
-                os.remove(self.logf(i))
-            for i in (x for x in logs if x <= self.keep_logs - 1):
-                os.rename(self.logf(i), self.logf(i + 1))
+            logs = self.logs_in_outdir()
 
         else:
             try:
