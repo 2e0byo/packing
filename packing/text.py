@@ -170,7 +170,6 @@ class RotatingLog:
         if count < self.log_lines:
             self.pos += count
         else:
-            self._abs_pos += count
             self.rotate_logs()
 
         logs = [x for x in self.logs_in_outdir() if x]

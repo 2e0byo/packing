@@ -140,6 +140,14 @@ def test_rotate_no_log(log):
     assert not (outdir / "log_0.log").exists()
 
 
+def test_rotate_no_0(log):
+    log, outdir = log
+    with (outdir / "log_6.log").open("w") as f:
+        f.write("")
+    log.rotate_logs()
+    assert (outdir / "log_6.log").exists()
+
+
 def test_read_no_logf(log):
     log, outdir = log
     exp = []
@@ -240,4 +248,35 @@ def test_incorporate(log):
     exp.append((i + 1, "new line"))
     resp = list(log.read(n=10))
     assert len(resp) == len(exp)
+    assert resp == exp
+
+
+def test_logs_in_outdir(log):
+    log, outdir = log
+    with (outdir / log.logf(6)).open("w") as f:
+        f.write("")
+    with (outdir / "another-file").open("w") as f:
+        f.write("")
+    assert log.logs_in_outdir() == (6,)
+
+
+def test_incorporate_full(log):
+    log, outdir = log
+    exp = []
+
+    for i in range(10):
+        l = f"test line {i}"
+        log.append(l)
+        exp.append((i, l))
+
+    del log
+    log = RotatingLog("log", str(outdir), log_lines=10)
+    log.append("new line")
+    exp.append((i + 1, "new line"))
+    resp = list(log.read(n=11))
+    assert len(resp) == len(exp)
+    from devtools import debug
+
+    debug(resp)
+
     assert resp == exp
