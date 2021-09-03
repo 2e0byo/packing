@@ -171,3 +171,20 @@ def test_skip_too_large(packer):
     assert len(resp) == 1
     resp = list(packer.read(n=2, skip=17))
     assert len(resp) == 0
+
+
+def test_incorporate(packer, equal):
+    packer, tmp_path = packer
+    exp = []
+    for i in range(9):
+        floats, bools = [i, i + 1], [True if i % 2 else False] * 8
+        packer.append(floats=floats, bools=bools, ints=floats)
+        exp.append([i, floats, floats, bools])
+
+    del packer
+    packer = PackedRotatingLog("log", str(tmp_path), 2, 2, 8, log_lines=10)
+    packer.append(floats=floats, bools=bools, ints=floats)
+    exp.append([i + 1, floats, floats, bools])
+
+    resp = list(packer.read(n=10))
+    assert equal(exp, resp)
