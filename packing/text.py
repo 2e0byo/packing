@@ -9,6 +9,9 @@ except ImportError:
     nofileerror = FileNotFoundError
 
 import time
+from collections import namedtuple
+
+Line = namedtuple("Line", ("id", "timestamp", "line"))
 
 
 class RotatingLog:
@@ -77,16 +80,16 @@ class RotatingLog:
                 line = "#".join(line.split("#")[1:])
                 if not line:
                     return None, timestamp
-                return time.localtime(int(timestamp)), line
+                return line, time.localtime(int(timestamp))
             except ValueError:
-                return None, "{}#{}".format(timestamp, line)
+                return "{}#{}".format(timestamp, line), None
 
         elif self.timestamp_interval:
             timestamp = time.time() - self.read_pos * self.timestamp_interval
-            return time.localtime(timestamp), line
+            return line, time.localtime(timestamp)
 
         else:
-            return (line,)
+            return (line, None)
 
     def _reader(self, logf, skip, pos=None):
         if pos is None:
@@ -99,7 +102,8 @@ class RotatingLog:
                     x = f.readline()
                     if not x:
                         break
-                    yield pos + self._read, *self.timestampify(x[:-1])
+                    line, timestamp = self.timestampify(x[:-1])
+                    yield Line(pos + self._read, timestamp, line)
                     self._read += 1
         except nofileerror:
             pass

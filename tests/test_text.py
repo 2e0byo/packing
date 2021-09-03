@@ -1,4 +1,4 @@
-from packing.text import RotatingLog
+from packing.text import RotatingLog, Line
 import pytest
 import time
 
@@ -33,7 +33,7 @@ def test_read_lines(log):
     for i in range(10):
         l = f"test line {i}"
         log.append(l)
-        exp.append((i, l))
+        exp.append(Line(i, None, l))
     assert list(log.read()) == exp
 
 
@@ -46,7 +46,7 @@ def test_read_lines_timestamp(mocker, log):
     for i in range(10):
         l = f"test line {i}"
         log.append(l)
-        exp.append((i, time.localtime(1630322465), l))
+        exp.append(Line(i, time.localtime(1630322465), l))
     assert len(mocked_time.call_args_list) == 10
     assert list(log.read()) == exp
 
@@ -60,7 +60,7 @@ def test_read_lines_fake_timestamp(mocker, log):
     for i in range(10):
         l = f"test line {i}"
         log.append(l)
-        exp.append((i, time.localtime(1630322465 - 600 + i * 60), l))
+        exp.append(Line(i, time.localtime(1630322465 - 600 + i * 60), l))
     mocked_time.assert_has_calls(() * 10)
     assert list(log.read()) == exp
 
@@ -70,7 +70,7 @@ def test_timestampify_errorhandling(log):
     log.timestamp = True
 
     assert log.timestampify("notimestamp") == (None, "notimestamp")
-    assert log.timestampify("this#that") == (None, "this#that")
+    assert log.timestampify("this#that") == ("this#that", None)
 
 
 def test_rotate(log):
@@ -154,7 +154,7 @@ def test_read_no_logf(log):
     for i in range(10):
         l = f"test line {i}"
         log.append(l)
-        exp.append((i, l))
+        exp.append(Line(i, None, l))
 
     resp = list(log.read())
     assert resp == exp
@@ -166,10 +166,10 @@ def test_empty_log_line(log):
     for i in range(8):
         l = f"test line {i}"
         log.append(l)
-        exp.append((i, l))
+        exp.append(Line(i, None, l))
 
     log.append("")
-    exp.append((8, ""))
+    exp.append(Line(8, None, ""))
 
     resp = list(log.read())
     assert resp == exp
@@ -181,7 +181,7 @@ def test_read_logf(log):
     for i in range(10):
         l = f"test line {i}"
         log.append(l)
-        exp.append((i, l))
+        exp.append(Line(i, None, l))
 
     resp = list(log.read(str(outdir / "log_0.log")))
     assert resp == exp
@@ -197,14 +197,11 @@ def test_read_regions(n, skip, log):
     for i in range(17):
         l = f"test line {i}"
         log.append(l)
-        exp.append((i, l))
+        exp.append(Line(i, None, l))
 
     resp = list(log.read(n=n, skip=skip))
     assert len(resp) == n
     exp = exp[len(exp) - n - skip : len(exp) - skip]
-    from devtools import debug
-
-    debug(resp)
     assert resp == exp
 
 
@@ -214,7 +211,7 @@ def test_read_too_large(log):
     for i in range(17):
         l = f"test line {i}"
         log.append(l)
-        exp.append((i, l))
+        exp.append(Line(i, None, l))
 
     resp = list(log.read(n=19))
     assert len(resp) == 17
@@ -240,12 +237,12 @@ def test_incorporate(log):
     for i in range(9):
         l = f"test line {i}"
         log.append(l)
-        exp.append((i, l))
+        exp.append(Line(i, None, l))
 
     del log
     log = RotatingLog("log", str(outdir), log_lines=10)
     log.append("new line")
-    exp.append((i + 1, "new line"))
+    exp.append(Line(i + 1, None, "new line"))
     resp = list(log.read(n=10))
     assert len(resp) == len(exp)
     assert resp == exp
@@ -267,16 +264,12 @@ def test_incorporate_full(log):
     for i in range(10):
         l = f"test line {i}"
         log.append(l)
-        exp.append((i, l))
+        exp.append(Line(i, None, l))
 
     del log
     log = RotatingLog("log", str(outdir), log_lines=10)
     log.append("new line")
-    exp.append((i + 1, "new line"))
+    exp.append(Line(i + 1, None, "new line"))
     resp = list(log.read(n=11))
     assert len(resp) == len(exp)
-    from devtools import debug
-
-    debug(resp)
-
     assert resp == exp
