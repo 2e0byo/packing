@@ -218,3 +218,14 @@ def test_read_too_large(packer, equal):
         exp.append([floats, floats, bools])
     resp = list(packer.read(n=19))
     assert equal(exp, resp)
+
+
+def test_skip_too_large(packer):
+    packer, tmp_path = packer
+    for i in range(17):
+        floats, bools = [i, i + 1], [True if i % 2 else False] * 8
+        packer.append(floats=floats, bools=bools, ints=floats)
+    resp = list(packer.read(n=2, skip=16))
+    assert len(resp) == 1
+    resp = list(packer.read(n=2, skip=17))
+    assert len(resp) == 0
