@@ -223,3 +223,21 @@ def test_skip_too_large(log):
     assert len(resp) == 1
     resp = list(log.read(n=2, skip=17))
     assert len(resp) == 0
+
+
+def test_incorporate(log):
+    log, outdir = log
+    exp = []
+
+    for i in range(9):
+        l = f"test line {i}"
+        log.append(l)
+        exp.append((i, l))
+
+    del log
+    log = RotatingLog("log", str(outdir), log_lines=10)
+    log.append("new line")
+    exp.append((i + 1, "new line"))
+    resp = list(log.read(n=10))
+    assert len(resp) == len(exp)
+    assert resp == exp
