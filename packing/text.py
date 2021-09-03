@@ -31,10 +31,15 @@ class RotatingLog:
         self._read = 0
         self._offset = 0
         self.pos = 0
+        self._abs_pos = 0
         self.maxlen = 100  # chars in line
         self.rotate_logs()
         self.timestamp = timestamp
         self.timestamp_interval = timestamp_interval
+
+    @property
+    def abs_pos(self):
+        return self._abs_pos + self.pos
 
     @property
     def read_pos(self):
@@ -101,6 +106,12 @@ class RotatingLog:
             return
 
         self._offset = skip + self._to_read
+        if self._offset > self.abs_pos:
+            self._to_read -= self._offset - self.abs_pos
+            if self._to_read <= 0:
+                return
+            self._offset = skip + self._to_read
+
         fs, skip = divmod(self._offset - self.pos, self.log_lines)
         if fs >= 0:
             fs += 1
@@ -131,4 +142,5 @@ class RotatingLog:
                 os.remove(self.logf())
             except Exception:
                 pass
+        self._abs_pos += self.pos
         self.pos = 0
