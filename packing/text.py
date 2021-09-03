@@ -158,6 +158,5 @@ class RotatingLog:
 
     def incorporate_logs(self):
         # incorporate anything else in the outdir
-        # ignores log in 0
         logs = self.logs_in_outdir()
-        self._abs_pos += len([x for x in logs if x]) * self.log_lines - 1
+        self._abs_pos += len(logs) * self.log_lines - 1
