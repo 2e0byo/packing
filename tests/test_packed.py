@@ -13,8 +13,10 @@ def packer(tmp_path):
 def test_rotate_init(tmp_path):
     with (tmp_path / "log_0.bin").open("w") as f:
         f.write("")
-    p = PackedRotatingLog("log", str(tmp_path), 2, 2, 8, log_lines=10)
-    assert not (tmp_path / "log_0.bin").exists()
+    p = PackedRotatingLog(
+        "log", str(tmp_path), 2, 2, 8, log_lines=10, incorporate=False
+    )
+    assert not (tmp_path / "log_0.bin").exists(), "Already written"
     assert (tmp_path / "log_1.bin").exists()
     p.append(floats=[8.7] * 2, ints=[7] * 2, bools=[False] * 8)
     assert (tmp_path / "log_0.bin").exists()
