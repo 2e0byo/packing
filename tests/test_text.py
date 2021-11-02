@@ -75,6 +75,7 @@ def test_timestampify_errorhandling(log):
 
 def test_rotate(log):
     log, outdir = log
+    log.keep_logs = 2
     exp = []
     for i in range(10):
         l = f"test line {i}"
@@ -83,10 +84,21 @@ def test_rotate(log):
     assert not (outdir / "log_1.log").exists(), "Overflowed"
     assert (outdir / "log_0.log").exists(), "No Outf"
     log.append("overflow")
+    exp.append("overflow")
     assert (outdir / "log_1.log").exists()
     assert (outdir / "log_0.log").exists()
     with (outdir / "log_0.log").open() as f:
         assert f.read() == "overflow\n"
+    assert exp == [x.line for x in log.read(n=11)]
+
+    for i in range(10):
+        l = f"test line {i}"
+        log.append(l)
+        exp.append(l)
+    assert (outdir / "log_2.log").exists()
+    assert (outdir / "log_1.log").exists()
+    assert (outdir / "log_0.log").exists()
+    assert exp == [x.line for x in log.read(n=21)]
 
 
 def test_rotate_simple(log):

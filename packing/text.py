@@ -150,7 +150,9 @@ class RotatingLog:
             if 0 in logs:
                 for i in (x for x in logs if x > self.keep_logs - 1):
                     os.remove(self.logf(i))
-                for i in (x for x in logs if x <= self.keep_logs - 1):
+                for i in sorted(
+                    (x for x in logs if x <= self.keep_logs - 1), reverse=True
+                ):
                     os.rename(self.logf(i), self.logf(i + 1))
 
         else:
