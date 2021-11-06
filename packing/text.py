@@ -44,9 +44,27 @@ class RotatingLog:
         else:
             self.rotate_logs()
 
+        lines_to_full = self.max_lines - self.abs_pos
+        if self.available(outdir) < self.fsize(lines_to_full):
+            raise Exception("Insufficient space in outdir")
+
+    @staticmethod
+    def available(d):
+        stat = os.statvfs(d)
+        return stat[4] * stat[0]
+
+    def fsize(self, lines):
+        # assumes ascii
+        # returns in bytes
+        return self.maxlen * lines
+
     @property
     def abs_pos(self):
         return self._abs_pos + self.pos
+
+    @property
+    def max_lines(self):
+        return self.log_lines * (1 + self.keep_logs)
 
     @property
     def read_pos(self):
