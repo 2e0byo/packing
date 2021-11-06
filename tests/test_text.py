@@ -273,15 +273,15 @@ def test_incorporate_full(log):
     log, outdir = log
     exp = []
 
-    for i in range(10):
+    for i in range(19):
         l = f"test line {i}"
         log.append(l)
         exp.append(Line(i, None, l))
 
     del log
-    log = RotatingLog("log", str(outdir), log_lines=10)
+    log = RotatingLog("log", str(outdir), log_lines=10, keep_logs=1)
     log.append("new line")
     exp.append(Line(i + 1, None, "new line"))
-    resp = list(log.read(n=11))
+    resp = list(log.read(n=20))
     assert len(resp) == len(exp)
     assert resp == exp
