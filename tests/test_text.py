@@ -285,3 +285,22 @@ def test_incorporate_full(log):
     resp = list(log.read(n=20))
     assert len(resp) == len(exp)
     assert resp == exp
+
+
+def test_incorporate_truncate(log):
+    log, outdir = log
+    exp = []
+
+    for i in range(19):
+        l = f"test line {i}"
+        log.append(l)
+        exp.append(Line(i, None, l))
+
+    del log
+    log = RotatingLog("log", str(outdir), log_lines=10, keep_logs=0)
+    log.append("new line")
+    exp.append(Line(i + 1, None, "new line"))
+    exp = exp[-10:]
+    resp = list(log.read(n=20))
+    assert len(resp) == len(exp)
+    assert [l.line for l in resp] == [l.line for l in exp]
