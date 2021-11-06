@@ -196,9 +196,16 @@ class RotatingLog:
         else:
             self.rotate_logs()
 
-        logs = [x for x in self.logs_in_outdir() if x]
-        count = 0
+        logs = self.logs_in_outdir()
+        try:
+            logs.remove(0)
+        except ValueError:
+            pass
+
+        max_lines = self.max_lines
         for i in logs:
-            for line in self.read(logf=self.logf(i), n=self.log_lines):
-                count += 1
-        self._abs_pos += count
+            flen = len([1 for l in self.read(logf=self.logf(i), n=self.log_lines)])
+            if self.abs_pos + flen <= max_lines:
+                self._abs_pos += flen
+            else:
+                os.unlink(self.logf(i))
