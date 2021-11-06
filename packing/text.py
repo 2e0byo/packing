@@ -142,7 +142,7 @@ class RotatingLog:
         for fn in os.listdir(self.outdir):
             if fn.startswith(self.name):
                 logs.append(int(fn.split("_")[-1].replace(".{}".format(self.ext), "")))
-        return tuple(logs)
+        return logs
 
     def rotate_logs(self):
         if self.keep_logs:

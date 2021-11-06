@@ -266,7 +266,7 @@ def test_logs_in_outdir(log):
         f.write("")
     with (outdir / "another-file").open("w") as f:
         f.write("")
-    assert log.logs_in_outdir() == (6,)
+    assert log.logs_in_outdir() == [6]
 
 
 def test_incorporate_full(log):
