@@ -36,7 +36,7 @@ class RotatingLog:
         self._offset = 0
         self.pos = 0
         self._abs_pos = 0
-        self.maxlen = 100  # chars in line
+        self._line_size = 100  # chars in line
         self.timestamp = timestamp
         self.timestamp_interval = timestamp_interval
         if incorporate:
@@ -56,7 +56,11 @@ class RotatingLog:
     def fsize(self, lines):
         # assumes ascii
         # returns in bytes
-        return self.maxlen * lines
+        return self.line_size * lines
+
+    @property
+    def line_size(self):
+        return self._line_size
 
     @property
     def abs_pos(self):
@@ -74,7 +78,7 @@ class RotatingLog:
         return "{}/{}_{}.{}".format(self.outdir, self.name, n, self.ext)
 
     def writeln(self, line):
-        line = "{}\n".format(line[: self.maxlen])
+        line = "{}\n".format(line[: self.line_size])
         with open(self.logf(), "a") as f:
             f.write(line)
 
