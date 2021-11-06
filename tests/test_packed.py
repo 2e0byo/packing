@@ -185,10 +185,22 @@ def test_incorporate(packer, equal):
     resp = list(packer.read(n=26))
     assert equal(exp, resp)
 
-    del packer
-    packer = PackedRotatingLog("log", str(tmp_path), 2, 2, 8, log_lines=10)
+    results = []
+    for _ in range(2):
+        del packer
+        packer = PackedRotatingLog(
+            "log", str(tmp_path), 2, 2, 8, log_lines=10, keep_logs=2
+        )
+
+        resp = list(packer.read(n=26))
+        try:
+            equal(exp, resp)
+            results.append(True)
+        except AssertionError:
+            results.append(False)
+
+    assert all(results)
     packer.append(floats=floats, bools=bools, ints=floats)
     exp.append([i + 1, floats, floats, bools])
-
     resp = list(packer.read(n=26))
     assert equal(exp, resp)
