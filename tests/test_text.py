@@ -304,3 +304,10 @@ def test_incorporate_truncate(log):
     resp = list(log.read(n=20))
     assert len(resp) == len(exp)
     assert [l.line for l in resp] == [l.line for l in exp]
+
+
+def test_insufficient_space(mocker, tmp_path):
+    statvfs = mocker.patch("os.statvfs")
+    statvfs.return_value = (1, 0, 0, 0, 7)
+    with pytest.raises(Exception, match="Insufficient space in outdir"):
+        log = RotatingLog("log", str(tmp_path), log_lines=10, keep_logs=1)
